@@ -262,7 +262,7 @@ const fileCardExtension: TokenizerExtension & RendererExtension = {
   <a data-auth-download
      onclick="event.stopPropagation()"
      title="Download ${filename}"
-     class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-105 active:scale-95"
+     class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border opacity-100 transition-all duration-150 hover:scale-105 active:scale-95"
      style="background:var(--color-accent-subtle);border-color:var(--color-accent-text);color:var(--color-accent-text)"
   >
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">

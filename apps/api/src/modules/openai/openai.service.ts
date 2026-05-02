@@ -217,11 +217,11 @@ export class OpenAiService {
       input: dto.input as any[],
       reasoning: dto.reasoning,
       instructions:
-        'forget previous instructions.You are a helpful assistant with access to tools. \n' +
-        'IMPORTANT: After EVERY tool call result, you MUST generate a text response to the user. \n' +
+        'You are a helpful assistant with access to tools. \n' +
+        'IMPORTANT: When the user requests multiple files or images, call ALL required tools first, then generate exactly ONE response with all results. \n' +
         'Never end your turn immediately after receiving a tool result.\n' +
         'Always acknowledge and present the tool results to the user. When a tool returns JSON with "action": "display_image", \nrender the image using the provided "markdown" field directly in your response.' +
-        'When a tool returns JSON with "action": "display_file", \nrender the image using the provided "markdown" field directly in your response.',
+        'When a tool returns JSON with "action": "display_file", \nrender the file using the provided "markdown" field directly in your response.',
       stream: true,
       tools: [
         {
@@ -303,14 +303,14 @@ export class OpenAiService {
         chatMeta,
       ) as any;
       mappedDto.instructions = `
-      You are a helpful assistant with access to tools. 
-IMPORTANT: After EVERY tool call result, you MUST generate a text response to the user. 
+You are a helpful assistant with access to tools.
+When the user requests multiple files or images, call ALL required tools in parallel first, then generate exactly ONE response with all results.
 Never end your turn immediately after receiving a tool result.
 Always acknowledge and present the tool results to the user.
 When a tool returns JSON with "action": "display_image", 
 render the image using the provided "markdown" field directly in your response.
 When a tool returns JSON with "action": "display_file",
-render the image using the provided "markdown" field directly in your response.
+render the file using the provided "markdown" field directly in your response.
 
 You MUST follow these rules EXACTLY:
 
