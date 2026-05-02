@@ -160,7 +160,7 @@ const FILE_TYPE_FALLBACK: FileTypeConfig = {
             <app-file-card
               [filename]="asset.filename ?? ''"
               [url]="asset.url ?? ''"
-              [ext]="fileExt(asset.filename)"
+              [ext]="fileExt(asset.mimeType)"
               [mimeType]="asset.mimeType"
               [size]="asset.sizeKb ?? 0"
               [style]="'sidebar'"
@@ -191,7 +191,7 @@ export class ChatAttachmentsSidebarComponent {
   readonly chat = input.required<ChatMetadataDto | null>();
 
   fileExt(filename?: string | null): string {
-    return filename?.split('.').pop()?.toLowerCase() ?? 'file';
+    return filename?.split('/').pop()?.toLowerCase() ?? 'file';
   }
 
   fileTypeConfig(filename?: string | null): FileTypeConfig {

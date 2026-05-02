@@ -895,7 +895,7 @@ const fileCardExtension: TokenizerExtension & RendererExtension = {
       url: string;
       attrs: Record<string, string>;
     };
-    const ext = (attrs['type'] ?? filename.split('.').pop() ?? 'file').toLowerCase();
+    const ext = (attrs['type'] ?? filename.split('.').pop() ?? 'file').toLowerCase().replace('.','');
     const size = attrs['size'] ?? '';
     return `<app-file-card data-filename="${encodeURIComponent(filename)}" data-url="${encodeURIComponent(url)}" data-ext="${encodeURIComponent(ext)}" data-size="${encodeURIComponent(size)}"></app-file-card>`;
   },

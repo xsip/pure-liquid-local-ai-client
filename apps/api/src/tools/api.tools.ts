@@ -145,12 +145,14 @@ export class ApiTools {
       total: '100',
     });
     const safeAssetUrl = encodeURI(assetUrl);
+    const safeFilename = zipFileName.replace(/[\[\]()]/g, '_');
+    const markdown = `::file[${safeFilename}](${safeAssetUrl}){size=${sizeLabel} type=${ext}}`;
     return {
       action: 'display_file',
       fileId: uploadedFileName,
       instruction:
         'You MUST respond to the user by displaying this file using the markdown property. Do not add anything else.',
-      markdown: `::file[${zipFileName}](${safeAssetUrl}){size=${sizeLabel} type=${ext}}`,
+      markdown
     };
   }
 
@@ -204,13 +206,15 @@ export class ApiTools {
       sizeKb,
       type: GeneratedAssetType.FILE, // was IMAGE — change if you have a FILE enum value
     });
-
+    const safeAssetUrl = encodeURI(assetUrl);
+    const safeFilename = filename.replace(/[\[\]()]/g, '_');
+    const markdown = `::file[${safeFilename}](${safeAssetUrl}){size=${sizeLabel} type=${ext}}`;
     return {
       action: 'display_file',
       fileId: uploadedFileName,
       instruction:
         'You MUST respond to the user by displaying this file using the markdown property. Do not add anything else.',
-      markdown: `::file[${filename}](${assetUrl}){size=${sizeLabel} type=${ext}}`,
+      markdown,
     };
   }
 

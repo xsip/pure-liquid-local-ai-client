@@ -216,12 +216,13 @@ export class OpenAiService {
       model: dto.model,
       input: dto.input as any[],
       reasoning: dto.reasoning,
-      instructions:
-        'You are a helpful assistant with access to tools. \n' +
-        'IMPORTANT: When the user requests multiple files or images, call ALL required tools first, then generate exactly ONE response with all results. \n' +
-        'Never end your turn immediately after receiving a tool result.\n' +
-        'Always acknowledge and present the tool results to the user. When a tool returns JSON with "action": "display_image", \nrender the image using the provided "markdown" field directly in your response.' +
-        'When a tool returns JSON with "action": "display_file", \nrender the file using the provided "markdown" field directly in your response.',
+      instructions: `You are a helpful assistant with access to tools.
+RULE: After receiving ANY tool result, you MUST always generate a text response. Never end your turn silently after a tool call.
+RULE: When a tool returns JSON containing "action": "display_file", your entire response MUST be exactly this, and nothing else:
+  <value of the "markdown" field>
+RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the individual files inside it.
+RULE: When a tool returns JSON containing "action": "display_image", your entire response MUST be exactly the value of the "markdown" field.
+RULE: Call ALL required tools before writing your response. Never call a tool after you have started writing your response.`,
       stream: true,
       tools: [
         {
@@ -304,15 +305,13 @@ export class OpenAiService {
         chatMeta,
       ) as any;
       mappedDto.instructions = `
-You are a helpful assistant with access to tools.
-When the user requests multiple files or images, call ALL required tools in parallel first, then generate exactly ONE response with all results.
-Never end your turn immediately after receiving a tool result.
-Always acknowledge and present the tool results to the user.
-When a tool returns JSON with "action": "display_image", 
-render the image using the provided "markdown" field directly in your response.
-When a tool returns JSON with "action": "display_file",
-render the file using the provided "markdown" field directly in your response.
-
+ You are a helpful assistant with access to tools.
+RULE: After receiving ANY tool result, you MUST always generate a text response. Never end your turn silently after a tool call.
+RULE: When a tool returns JSON containing "action": "display_file", your entire response MUST be exactly this, and nothing else:
+  <value of the "markdown" field>
+RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the individual files inside it.
+RULE: When a tool returns JSON containing "action": "display_image", your entire response MUST be exactly the value of the "markdown" field.
+RULE: Call ALL required tools before writing your response. Never call a tool after you have started writing your response.
 You MUST follow these rules EXACTLY:
 
 STEP 1 — TOOL CALL
