@@ -15,6 +15,10 @@ export class ImageBlob {
   @Prop({ required: true })
   filename: string;
 
+  /** Original file name (sanitised) */
+  @Prop({ required: true })
+  displayName: string;
+
   /** MIME type, e.g. image/jpeg */
   @Prop({ required: true })
   mimeType: string;

@@ -237,6 +237,7 @@ export class OpenAiService {
             'greeting-tool',
             'get-token-usage-tool',
             'generate-file-from-content-tool',
+            'generate-zip-from-file-ids',
           ],
         } as any,
       ],

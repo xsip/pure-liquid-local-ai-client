@@ -16,6 +16,7 @@ import { ConfigService } from '@nestjs/config';
 import crypto from 'crypto';
 import { ApiEvent, ToolsHelperService } from './tools-helper.service';
 import { GeneratedAssetType } from '../modules/chat-metadata/chat-metadata.schema';
+import JSZip from 'jszip';
 
 @Injectable()
 export class ApiTools {
@@ -55,6 +56,102 @@ export class ApiTools {
       }, 40);
     });
     return `Hello2, ${name}!`;
+  }
+
+  @Tool({
+    name: 'generate-zip-from-file-ids',
+    description: 'Generates a zip from chats file ids',
+    parameters: z.object({
+      fileIds: z.array(z.string()),
+      zipFileName: z.string(),
+    }),
+  })
+  async generateZipFromFileIds(
+    { fileIds, zipFileName }: { fileIds: string[]; zipFileName: string },
+    context: Context,
+    request: Request,
+  ) {
+    const user = (request as any).user as User & { _id?: Types.ObjectId };
+    const chatId = request.headers['chatid'] as string;
+
+    if (!user) return `User not defined!!`;
+    if (!chatId) return `chatId not defined!!`;
+    if (!fileIds?.length) return 'No File Ids provided!!';
+
+    const zip = new JSZip();
+
+    for (let i = 0; i < fileIds.length; i++) {
+      const fileId = fileIds[i];
+
+      const file = await this.assetsService.getAsset(
+        user._id + '',
+        chatId,
+        fileId,
+      );
+
+      zip.file(file.displayName, file.data);
+
+      await this.assetsService.deleteAsset(user._id + '', chatId, fileId);
+      await this.chatMetaDataService.removeAssetFromChat(
+        user._id!,
+        chatId,
+        file._id,
+      );
+      this.toolsHelperService.emitApiEvent(request, ApiEvent.MCP_PROGRESS, {
+        progress: Math.round(((i + 1) / fileIds.length) * 90), // reserve last 10% for upload
+        message: `Zipped ${file.displayName}`,
+        total: '100',
+      });
+    }
+
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const buffer = Buffer.from(zipBuffer);
+
+    this.toolsHelperService.emitApiEvent(request, ApiEvent.MCP_PROGRESS, {
+      progress: 95,
+      message: `Uploading zip...`,
+      total: '100',
+    });
+
+    const ZIP_MIME_TYPE = 'application/zip';
+
+    const { filename: uploadedFileName, id } =
+      await this.assetsService.uploadFile(
+        user._id + '',
+        chatId,
+        zipFileName,
+        buffer,
+        ZIP_MIME_TYPE,
+      );
+
+    const assetUrl = `api/assets/${chatId}/${uploadedFileName}`;
+    const ext = '.zip';
+    const sizeKb = Math.round(buffer.byteLength / 1024);
+    const sizeLabel =
+      sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)}MB` : `${sizeKb}KB`;
+
+    await this.chatMetaDataService.addAssetToChat(user._id!, chatId, {
+      url: assetUrl,
+      filename: zipFileName,
+      refId: id,
+      mimeType: ZIP_MIME_TYPE,
+      sizeKb,
+      type: GeneratedAssetType.FILE,
+    });
+
+    this.toolsHelperService.emitApiEvent(request, ApiEvent.MCP_PROGRESS, {
+      progress: 100,
+      message: `Done!`,
+      total: '100',
+    });
+    const safeAssetUrl = encodeURI(assetUrl);
+    return {
+      action: 'display_file',
+      fileId: uploadedFileName,
+      instruction:
+        'You MUST respond to the user by displaying this file using the markdown property. Do not add anything else.',
+      markdown: `::file[${zipFileName}](${safeAssetUrl}){size=${sizeLabel} type=${ext}}`,
+    };
   }
 
   @Tool({
@@ -110,6 +207,7 @@ export class ApiTools {
 
     return {
       action: 'display_file',
+      fileId: uploadedFileName,
       instruction:
         'You MUST respond to the user by displaying this file using the markdown property. Do not add anything else.',
       markdown: `::file[${filename}](${assetUrl}){size=${sizeLabel} type=${ext}}`,

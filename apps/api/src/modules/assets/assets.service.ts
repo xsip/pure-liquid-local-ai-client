@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ImageBlob, ImageBlobDocument } from './image-blob.schema';
-import { Model } from 'mongoose';
+import { DeleteResult, Model } from 'mongoose';
 
 @Injectable()
 export class AssetsService {
@@ -10,6 +10,16 @@ export class AssetsService {
     private readonly imageBlobModel: Model<ImageBlobDocument>,
   ) {}
 
+
+  async deleteAsset(
+    userId: string,
+    chatId: string,
+    filename: string
+  ): Promise<DeleteResult> {
+    return this.imageBlobModel
+      .deleteOne({ userId, chatId, filename })
+      .exec();
+  }
   async getAsset(
     userId: string,
     chatId: string,
@@ -51,6 +61,7 @@ export class AssetsService {
       chatId,
       filename,
       mimeType,
+      displayName: originalFilename,
       data,
       thumbnailData,
     });

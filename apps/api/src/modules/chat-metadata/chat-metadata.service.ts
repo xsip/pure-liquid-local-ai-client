@@ -9,7 +9,6 @@ import { Model, Types } from 'mongoose';
 import {
   ChatMetadata,
   ChatMetadataDocument,
-  ChatMetadataDto,
   GeneratedAsset,
   GeneratedAssetDto,
 } from './chat-metadata.schema';
@@ -86,6 +85,21 @@ export class ChatMetadataService {
     await doc.save();
     this.logger.log(`Updated ChatMetadata id=${id}`);
     return doc;
+  }
+
+  async removeAssetFromChat(
+    userId: Types.ObjectId,
+    id: string,
+    refId: Types.ObjectId,
+  ): Promise<void> {
+    const doc = await this.metaModel.findById(id).exec();
+    if (!doc) throw new NotFoundException(`ChatMetadata ${id} not found`);
+    this.assertOwner(userId, doc);
+
+    doc.generatedAssets = doc.generatedAssets?.filter(
+      (asset) => asset.refId + '' !== refId + '',
+    );
+    await doc.save();
   }
 
   async addAssetToChat(
