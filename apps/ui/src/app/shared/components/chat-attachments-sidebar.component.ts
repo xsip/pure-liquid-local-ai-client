@@ -162,6 +162,7 @@ const FILE_TYPE_FALLBACK: FileTypeConfig = {
               [url]="asset.url ?? ''"
               [ext]="fileExt(asset.filename)"
               [mimeType]="asset.mimeType"
+              [size]="asset.sizeKb ?? 0"
               @chatItemAnim
             />
           } @else if (asset.type === 'IMAGE' && asset.thumbnail) {

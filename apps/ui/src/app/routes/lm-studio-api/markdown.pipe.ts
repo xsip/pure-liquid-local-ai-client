@@ -139,7 +139,7 @@ const fileIconGeneric = _svgWrap(
               class="text-[11px] font-medium px-1.5 py-0.5 rounded"
               [style.background]="'var(--color-surface-overlay)'"
               [style.color]="'var(--color-text-muted)'"
-              >{{ size }}</span
+              >{{ size }} KB</span
             >
           }
         </div>
@@ -179,7 +179,7 @@ const fileIconGeneric = _svgWrap(
 export class FileCardComponent {
   @Input() filename = '';
   @Input() url = '';
-  @Input() size = '';
+  @Input() size = 0;
   @Input() ext = 'file';
   @Input() mimeType?: string = '';
 
@@ -988,7 +988,7 @@ export class FileCardMountDirective extends ComponentMountDirective {
       ref.instance.url = url;
       ref.instance.ext = ext;
       ref.instance.mimeType = mimeType;
-      ref.instance.size = size;
+      ref.instance.size = parseFloat(size ?? 0);
       ref.changeDetectorRef.detectChanges();
 
       placeholder.replaceWith(ref.location.nativeElement);
