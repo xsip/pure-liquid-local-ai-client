@@ -16,6 +16,7 @@
     "loginFailed": "Login failed. Check your credentials."
   },
   "sidebar": {
+    "searchFiles": "Search for file",
     "back": "Back",
     "history": "History",
     "newChat": "New Chat",

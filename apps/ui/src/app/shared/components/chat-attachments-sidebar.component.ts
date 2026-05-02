@@ -1,6 +1,7 @@
 import { animate, style, transition, trigger } from '@angular/animations';
-import { Component, input } from '@angular/core';
+import { Component, computed, input, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
@@ -12,20 +13,24 @@ import {
   heroPaperClip,
   heroPhoto,
   heroTableCells,
+  heroXMark,
+  heroMagnifyingGlass,
 } from '@ng-icons/heroicons/outline';
 import {
   AuthFilesDirective,
   AuthImageComponent,
   AuthImageMountDirective,
-  CodeBlockMountDirective, FileCardComponent,
+  CodeBlockMountDirective,
+  FileCardComponent,
   FileCardMountDirective,
 } from '../../routes/lm-studio-api/markdown.pipe';
 import { ChatMetadataDto } from '../../client';
+import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 
 interface FileTypeConfig {
   icon: string;
-  iconClass: string; // tailwind text-* colour class
-  extClass: string; // tailwind text-* colour class for the badge
+  iconClass: string;
+  extClass: string;
 }
 
 const FILE_TYPE_MAP: Record<string, FileTypeConfig> = {
@@ -118,6 +123,7 @@ const FILE_TYPE_FALLBACK: FileTypeConfig = {
   ],
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     TranslateModule,
     NgIconComponent,
     AuthImageMountDirective,
@@ -137,9 +143,37 @@ const FILE_TYPE_FALLBACK: FileTypeConfig = {
       heroMusicalNote,
       heroPhoto,
       heroArrowDownTray,
+      heroXMark,
+      heroMagnifyingGlass,
     }),
   ],
   template: `
+    <!-- Search input -->
+    <div class="px-2 pt-2 pb-1">
+      <div class="relative flex items-center">
+        <ng-icon
+          name="heroMagnifyingGlass"
+          class="absolute left-2.5 w-3.5 h-3.5 text-text-disabled pointer-events-none"
+        />
+        <input
+          type="text"
+          [formControl]="searchControl"
+          placeholder="{{ 'sidebar.searchFiles' | translate }}"
+          class="w-full bg-surface-overlay/40 hover:bg-surface-overlay focus:bg-surface-overlay border border-transparent focus:border-border-subtle text-xs text-text-primary placeholder:text-text-disabled rounded-lg pl-7 pr-7 py-1.5 outline-none transition-all duration-150"
+        />
+        @if (searchControl.value) {
+          <button
+            type="button"
+            (click)="clearSearch()"
+            class="absolute right-2 flex items-center justify-center w-4 h-4 rounded-full text-text-disabled hover:text-text-secondary transition-colors"
+          >
+            <ng-icon name="heroXMark" class="w-3 h-3" />
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- File list -->
     <div
       class="flex-1 overflow-y-auto py-1 min-h-0 px-2 flex flex-col gap-0.5"
       mountAuthImages
@@ -154,8 +188,15 @@ const FILE_TYPE_FALLBACK: FileTypeConfig = {
             'sidebar.noGeneratedFiles' | translate
           }}</span>
         </div>
+      } @else if (filteredAssets().length === 0) {
+        <div class="flex flex-col items-center justify-center h-full gap-2 text-center px-3 py-8">
+          <ng-icon name="heroMagnifyingGlass" class="w-8 h-8 text-text-disabled" />
+          <span class="text-[10px] text-text-disabled uppercase tracking-wider">{{
+            'sidebar.noSearchResults' | translate
+          }}</span>
+        </div>
       } @else {
-        @for (asset of chat()!.generatedAssets!; track asset._id) {
+        @for (asset of filteredAssets(); track asset._id) {
           @if (asset.type === 'FILE') {
             <app-file-card
               [filename]="asset.filename ?? ''"
@@ -187,8 +228,37 @@ const FILE_TYPE_FALLBACK: FileTypeConfig = {
     </div>
   `,
 })
-export class ChatAttachmentsSidebarComponent {
+export class ChatAttachmentsSidebarComponent implements OnInit, OnDestroy {
   readonly chat = input.required<ChatMetadataDto | null>();
+
+  readonly searchControl = new FormControl<string>('', { nonNullable: true });
+
+  /** Debounced search query kept in a signal so `filteredAssets` stays reactive. */
+  readonly searchQuery = signal('');
+
+  readonly filteredAssets = computed(() => {
+    const assets = this.chat()?.generatedAssets ?? [];
+    const query = this.searchQuery().trim().toLowerCase();
+    if (!query) return assets;
+    return assets.filter((asset) => asset.filename?.toLowerCase().includes(query));
+  });
+
+  private readonly destroy$ = new Subject<void>();
+
+  ngOnInit(): void {
+    this.searchControl.valueChanges
+      .pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((value) => this.searchQuery.set(value));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  clearSearch(): void {
+    this.searchControl.reset('');
+  }
 
   fileExt(filename?: string | null): string {
     return filename?.split('/').pop()?.toLowerCase() ?? 'file';

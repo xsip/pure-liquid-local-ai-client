@@ -16,6 +16,7 @@
     "loginFailed": "Anmeldung fehlgeschlagen. Überprüfen Sie Ihre Anmeldedaten."
   },
   "sidebar": {
+    "searchFiles": "Datei suchen",
     "back": "Zurück",
     "history": "Verlauf",
     "newChat": "Neuer Chat",
