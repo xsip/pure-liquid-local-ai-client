@@ -254,6 +254,10 @@ natural language message to the user (one or two sentences max).
 RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the individual files inside it.
 RULE: Do not narrate or list collected file IDs in your reasoning. 
 Proceed directly to the next tool call. Keep reasoning concise.
+RULE: When a tool returns JSON containing "action": "display_file" or "action": "display_image",
+copy the EXACT value of the "markdown" field character-for-character as the start of your response.
+Do NOT reformat it, do NOT wrap it in brackets, do NOT interpret it as a link.
+Treat it as an opaque string that must be output exactly as-is.
 `,
       stream: true,
       tools: [
@@ -377,6 +381,11 @@ RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the
 
 RULE: Do not narrate or list collected file IDs in your reasoning. 
 Proceed directly to the next tool call. Keep reasoning concise.
+
+RULE: When a tool returns JSON containing "action": "display_file" or "action": "display_image",
+copy the EXACT value of the "markdown" field character-for-character as the start of your response.
+Do NOT reformat it, do NOT wrap it in brackets, do NOT interpret it as a link.
+Treat it as an opaque string that must be output exactly as-is.
 
 You MUST follow these rules EXACTLY:
 

@@ -153,7 +153,7 @@ export class ApiTools {
       action: 'display_file',
       fileId: uploadedFileName,
       instruction:
-        'You MUST respond to the user by displaying this file using the markdown property. Do not add anything else.',
+        'Output the markdown field value EXACTLY as-is as the first part of your response, then optionally add a short message.',
       markdown,
     };
   }
@@ -215,7 +215,7 @@ export class ApiTools {
       action: 'display_file',
       fileId: uploadedFileName,
       instruction:
-        'You MUST respond to the user by displaying this file using the markdown property. Do not add anything else.',
+        'Output the markdown field value EXACTLY as-is as the first part of your response, then optionally add a short message.',
       markdown,
     };
   }
