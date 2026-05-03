@@ -1,26 +1,29 @@
+// ── FileCardComponent ────────────────────────────────────────────────────────
 import {
-  inject,
-  Pipe,
-  PipeTransform,
+  ApplicationRef,
+  ChangeDetectorRef,
+  Component,
+  createComponent,
   Directive,
   ElementRef,
+  EnvironmentInjector,
+  HostListener,
+  inject,
+  Input,
   OnDestroy,
   OnInit,
-  Component,
-  Input,
-  ViewEncapsulation,
-  ApplicationRef,
-  createComponent,
-  EnvironmentInjector,
-  ChangeDetectorRef,
-  input,
+  Pipe,
+  PipeTransform,
+  signal,
+  ViewEncapsulation
 } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
-import { marked, type TokenizerExtension, type RendererExtension } from 'marked';
+import { marked, type RendererExtension, type TokenizerExtension } from 'marked';
 import katex from 'katex';
 import Prism from 'prismjs';
-import { map, Observable, publishReplay, refCount } from 'rxjs';
+import { Observable } from 'rxjs';
+import { map, publishReplay, refCount } from 'rxjs/operators';
 
 // ── KaTeX extensions for marked ─────────────────────────────────────────────
 
@@ -99,63 +102,53 @@ const fileIconGeneric = _svgWrap(
   '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
 );
 
-// ── FileCardComponent ────────────────────────────────────────────────────────
 @Component({
   selector: 'app-file-card',
   standalone: true,
   encapsulation: ViewEncapsulation.None,
   template: `
     <div
-      class="group my-3 flex items-center gap-3 rounded-xl px-4 py-3 border transition-all duration-200 cursor-pointer hover-lift"
-      [style.background]="'var(--color-surface-raised)'"
-      [style.border-color]="'var(--color-border-default)'"
-      [style.box-shadow]="'var(--shadow-sm)'"
+      class="group my-3 flex items-center gap-3 rounded-xl px-4 py-3 border border-border-default bg-surface-raised shadow-sm transition-all duration-200 cursor-pointer hover-lift"
       (click)="onCardClick($event)"
     >
       <!-- File type icon -->
       <div
-        class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-        [style.background]="'var(--color-surface-overlay)'"
+        class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-overlay"
         [style.color]="colour"
         [innerHTML]="icon"
       ></div>
+
       <!-- Filename + meta -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap">
           <span
-            class="{{ style === 'chat' ? 'text-[14px]': 'text-[12px]'  }} font-medium truncate max-w-[280px]"
-            [style.color]="'var(--color-text-primary)'"
+            class="{{
+              style === 'chat' ? 'text-[14px]' : 'text-[12px]'
+            }} font-medium truncate max-w-[280px] text-text-primary"
             [title]="filename"
             >{{ filename }}</span
           >
           <span
-            class="text-[10px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
-            [style.background]="'var(--color-surface-overlay)'"
+            class="text-[10px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-overlay"
             [style.color]="colour"
             >{{ ext }}</span
           >
           @if (size) {
             <span
-              class="text-[11px] font-medium px-1.5 py-0.5 rounded"
-              [style.background]="'var(--color-surface-overlay)'"
-              [style.color]="'var(--color-text-muted)'"
-              >{{ size }} KB</span
+              class="text-[11px] font-medium px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted"
             >
+              {{ size }} KB
+            </span>
           }
         </div>
-        <p class="text-[11px] mt-0.5 truncate" [style.color]="'var(--color-text-muted)'">
-          {{ url }}
-        </p>
+        <p class="text-[11px] mt-0.5 truncate text-text-muted">{{ url }}</p>
       </div>
 
       <!-- Download button -->
       <a
         (click)="onDownloadClick($event)"
         [title]="'Download ' + filename"
-        class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border opacity-100 transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
-        [style.background]="'var(--color-accent-subtle)'"
-        [style.border-color]="'var(--color-accent-text)'"
-        [style.color]="'var(--color-accent-text)'"
+        class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border border-accent-text bg-accent-subtle text-accent-text opacity-100 transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
       >
         <svg
           width="15"
@@ -174,6 +167,109 @@ const fileIconGeneric = _svgWrap(
         </svg>
       </a>
     </div>
+
+    <!-- ── HTML Preview Overlay ── -->
+    @if (previewOpen()) {
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        style="background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);"
+        (click)="closePreview($event)"
+      >
+        <div
+          class="relative flex flex-col rounded-2xl border border-border-default bg-surface-raised overflow-hidden shadow-xl"
+          style="width: min(92vw, 960px); height: min(88vh, 720px);"
+          (click)="$event.stopPropagation()"
+        >
+          <!-- Header bar -->
+          <div
+            class="flex items-center gap-3 px-4 py-2.5 border-b border-border-default bg-surface-overlay flex-shrink-0"
+          >
+            <!-- Traffic-light dots -->
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-error-text opacity-70"></span>
+              <span class="w-3 h-3 rounded-full bg-warn-text opacity-70"></span>
+              <span class="w-3 h-3 rounded-full bg-success-text opacity-70"></span>
+            </div>
+
+            <!-- Filename pill -->
+            <div
+              class="flex-1 flex items-center gap-2 px-3 py-1 rounded-lg text-[12px] font-mono truncate bg-surface-base text-text-secondary border border-border-subtle"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 15 15"
+                fill="none"
+                class="flex-shrink-0 opacity-50"
+              >
+                <path
+                  d="M2 2.5A.5.5 0 0 1 2.5 2h6.086a.5.5 0 0 1 .353.146l3.915 3.915A.5.5 0 0 1 13 6.415V12.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10z"
+                  stroke="currentColor"
+                  stroke-width="1.2"
+                />
+              </svg>
+              <span class="truncate">{{ filename }}</span>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <!-- Open externally -->
+              <button
+                (click)="openExternal($event)"
+                title="Open in new tab"
+                class="w-7 h-7 rounded-lg flex items-center justify-center border border-accent-text bg-accent-subtle text-accent-text transition-all duration-150 hover:scale-105 active:scale-95"
+              >
+                <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
+                  <path
+                    d="M3 2h9v9M12 3 5 10"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+
+              <!-- Close -->
+              <button
+                (click)="closePreview($event)"
+                title="Close preview"
+                class="w-7 h-7 rounded-lg flex items-center justify-center border border-border-default bg-surface-sunken text-text-secondary transition-all duration-150 hover:scale-105 active:scale-95"
+              >
+                <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
+                  <path
+                    d="M2 2l11 11M13 2 2 13"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- iframe content -->
+          <div class="flex-1 overflow-hidden bg-white">
+            @if (previewSrc()) {
+              <iframe
+                [src]="previewSrc()!"
+                class="w-full h-full border-0"
+                sandbox="allow-scripts allow-same-origin"
+                title="HTML Preview"
+              ></iframe>
+            } @else {
+              <!-- Loading skeleton -->
+              <div
+                class="w-full h-full flex flex-col items-center justify-center gap-3 bg-surface-base"
+              >
+                <div class="shimmer-bg rounded-lg" style="width: 220px; height: 16px;"></div>
+                <div class="shimmer-bg rounded-lg" style="width: 160px; height: 12px;"></div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class FileCardComponent {
@@ -183,6 +279,9 @@ export class FileCardComponent {
   @Input() size = 0;
   @Input() ext = 'file';
   @Input() mimeType?: string = '';
+
+  readonly previewOpen = signal(false);
+  readonly previewSrc = signal<SafeResourceUrl | null>(null);
 
   private readonly http = inject(HttpClient);
   private readonly sanitizer = inject(DomSanitizer);
@@ -196,11 +295,20 @@ export class FileCardComponent {
     return this.sanitizer.bypassSecurityTrustHtml(FILE_TYPE_MAP[this.ext]?.icon ?? fileIconGeneric);
   }
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.previewOpen()) this.previewOpen.set(false);
+  }
+
   onCardClick(e: MouseEvent): void {
-    this.fetchBlobUrl(this.url).subscribe({
-      next: (blobUrl) => window.open(blobUrl, '_blank', 'noopener,noreferrer'),
-      error: () => console.warn(`[FileCardComponent] Failed to open: ${this.url}`),
-    });
+    if (this.ext === 'html') {
+      this.openHtmlPreview();
+    } else {
+      this.fetchBlobUrl(this.url).subscribe({
+        next: (blobUrl) => window.open(blobUrl, '_blank', 'noopener,noreferrer'),
+        error: () => console.warn(`[FileCardComponent] Failed to open: ${this.url}`),
+      });
+    }
   }
 
   onDownloadClick(e: MouseEvent): void {
@@ -214,6 +322,34 @@ export class FileCardComponent {
         a.click();
       },
       error: () => console.warn(`[FileCardComponent] Failed to download: ${this.url}`),
+    });
+  }
+
+  openExternal(e: MouseEvent): void {
+    e.stopPropagation();
+    this.fetchBlobUrl(this.url).subscribe({
+      next: (blobUrl) => window.open(blobUrl, '_blank', 'noopener,noreferrer'),
+      error: () => console.warn(`[FileCardComponent] Failed to open externally: ${this.url}`),
+    });
+  }
+
+  closePreview(e: MouseEvent): void {
+    e.stopPropagation();
+    this.previewOpen.set(false);
+  }
+
+  private openHtmlPreview(): void {
+    this.previewSrc.set(null);
+    this.previewOpen.set(true);
+
+    this.fetchBlobUrl(this.url).subscribe({
+      next: (blobUrl) => {
+        this.previewSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl));
+      },
+      error: () => {
+        console.warn(`[FileCardComponent] Failed to load HTML preview: ${this.url}`);
+        this.previewOpen.set(false);
+      },
     });
   }
 
