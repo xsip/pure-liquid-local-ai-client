@@ -222,17 +222,38 @@ RULE: Call ALL required tools before writing your response. Never call a tool af
 
 RULE: After ALL tool calls are complete, you MUST generate a text response. Never end your turn silently.
 
+RULE: Tool names are fixed and exact. The only available tools are:
+  - generate-file-from-content-tool
+  - generate-zip-from-file-ids
+  - get-token-usage-tool
+  
+Never invent variations like "generate_zip_from-file-ids_1" or append numbers/suffixes.
+If a tool call fails, retry with the EXACT same tool name. A failure is never caused
+by the tool name being wrong — do not change it.
+
+RULE: File IDs are UNKNOWN until generate-file-from-content-tool returns them.
+Never invent, guess, or hardcode file IDs like "package.json_id" or similar placeholders.
+The real fileId is found in the tool response JSON under the key "fileId".
+You MUST use that exact returned string value when calling generate-zip-from-file-ids.
+
 RULE: To generate a ZIP file with multiple files:
   1. Call generate-file-from-content-tool once for EACH file you need to create.
-  2. Collect all returned file IDs from each call.
-  3. Call generate-zip-from-file-ids with all collected file IDs and a zip filename.
+  2. After each call, read the "fileId" value from the returned JSON — this is the real ID.
+  3. After ALL files are created, call generate-zip-from-file-ids with the collected real fileIds and a zip filename.
   Never give up on a ZIP request because it requires multiple files — use multiple tool calls.
 
-RULE: When a tool returns JSON containing "action": "display_file", your entire response MUST be exactly the value of the "markdown" field, and nothing else.
+EXAMPLE of correct ZIP workflow:
+  - Call generate-file-from-content-tool for file1 → response: { "fileId": "abc-123", ... }
+  - Call generate-file-from-content-tool for file2 → response: { "fileId": "def-456", ... }
+  - Call generate-file-from-content-tool for file3 → response: { "fileId": "ghi-789", ... }
+  - Call generate-zip-from-file-ids with fileIds: ["abc-123", "def-456", "ghi-789"]
 
-RULE: When a tool returns JSON containing "action": "display_image", your entire response MUST be exactly the value of the "markdown" field, and nothing else.
-
+RULE: When a tool returns JSON containing "action": "display_file" or "action": "display_image",
+your response MUST start with the value of the "markdown" field, followed by a short
+natural language message to the user (one or two sentences max).
 RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the individual files inside it.
+RULE: Do not narrate or list collected file IDs in your reasoning. 
+Proceed directly to the next tool call. Keep reasoning concise.
 `,
       stream: true,
       tools: [
@@ -316,13 +337,47 @@ RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the
         chatMeta,
       ) as any;
       mappedDto.instructions = `
- You are a helpful assistant with access to tools.
-RULE: After receiving ANY tool result, you MUST always generate a text response. Never end your turn silently after a tool call.
-RULE: When a tool returns JSON containing "action": "display_file", your entire response MUST be exactly this, and nothing else:
-  <value of the "markdown" field>
-RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the individual files inside it.
-RULE: When a tool returns JSON containing "action": "display_image", your entire response MUST be exactly the value of the "markdown" field.
+You are a helpful assistant with access to tools.
+
 RULE: Call ALL required tools before writing your response. Never call a tool after you have started writing your response.
+
+RULE: After ALL tool calls are complete, you MUST generate a text response. Never end your turn silently.
+
+RULE: Tool names are fixed and exact. The only available tools are:
+  - generate-file-from-content-tool
+  - generate-zip-from-file-ids
+  - get-token-usage-tool
+  
+Never invent variations like "generate_zip_from-file-ids_1" or append numbers/suffixes.
+If a tool call fails, retry with the EXACT same tool name. A failure is never caused
+by the tool name being wrong — do not change it.
+
+RULE: File IDs are UNKNOWN until generate-file-from-content-tool returns them.
+Never invent, guess, or hardcode file IDs like "package.json_id" or similar placeholders.
+The real fileId is found in the tool response JSON under the key "fileId".
+You MUST use that exact returned string value when calling generate-zip-from-file-ids.
+
+RULE: To generate a ZIP file with multiple files:
+  1. Call generate-file-from-content-tool once for EACH file you need to create.
+  2. After each call, read the "fileId" value from the returned JSON — this is the real ID.
+  3. After ALL files are created, call generate-zip-from-file-ids with the collected real fileIds and a zip filename.
+  Never give up on a ZIP request because it requires multiple files — use multiple tool calls.
+
+EXAMPLE of correct ZIP workflow:
+  - Call generate-file-from-content-tool for file1 → response: { "fileId": "abc-123", ... }
+  - Call generate-file-from-content-tool for file2 → response: { "fileId": "def-456", ... }
+  - Call generate-file-from-content-tool for file3 → response: { "fileId": "ghi-789", ... }
+  - Call generate-zip-from-file-ids with fileIds: ["abc-123", "def-456", "ghi-789"]
+
+RULE: When a tool returns JSON containing "action": "display_file" or "action": "display_image",
+your response MUST start with the value of the "markdown" field, followed by a short
+natural language message to the user (one or two sentences max).
+
+RULE: When the user asks for a ZIP, only show the ZIP file card. Do not show the individual files inside it.
+
+RULE: Do not narrate or list collected file IDs in your reasoning. 
+Proceed directly to the next tool call. Keep reasoning concise.
+
 You MUST follow these rules EXACTLY:
 
 STEP 1 — TOOL CALL
