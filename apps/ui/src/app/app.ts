@@ -1,10 +1,10 @@
 import { ApplicationRef, Component, EnvironmentInjector, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { LmStudioEvent } from './lmstudio-stream.service';
 import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
 import { ImageLightboxComponent } from './routes/lm-studio-api/markdown.pipe';
+
 interface DecodedToken {
   exp: number; // Expiration time in seconds since epoch
   iat: number; // Issued at time

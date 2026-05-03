@@ -58,6 +58,7 @@ import {
   heroSparkles,
 } from '@ng-icons/heroicons/outline';
 import InvokeAiModelToUseEnum = ChatMetadataDto.InvokeAiModelToUseEnum;
+import { BlobBackgroundDirective } from '../shared/directives/blob-background.directive';
 
 /** How the chat name is determined when creating a new chat. */
 type ChatNameMode = 'ai' | 'custom' | 'none';
@@ -80,6 +81,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
     ToggleComponent,
     TranslateModule,
     NgIconComponent,
+    BlobBackgroundDirective,
   ],
   viewProviders: [provideIcons({ heroBars3, heroUser, heroPlus, heroXMark, heroSparkles })],
   animations: [
@@ -192,7 +194,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
       </div>
 
       <!-- ── Body ── -->
-      <div class="flex flex-1 overflow-hidden relative min-h-0 bg-surface-base">
+      <div appBlobBackground class="flex flex-1 overflow-hidden relative min-h-0 bg-surface-base">
         @if (showChatsSidebar()) {
           <app-chat-sidebar
             #chatSidebar
