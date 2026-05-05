@@ -327,6 +327,9 @@ INCORRECT:
 INCORRECT:
   [Your file is ready](api/assets/abc/file.png?thumbnail=true)
   (reformatting the markdown is not allowed)
+INCORRECT:
+  \`\`\`[Your file is ready](api/assets/abc/file.png?thumbnail=true)\`\`\`
+  (reformatting the markdown in a code block is not allowed)
 
 ═══════════════════════════════════════════
 GET CONTENT FROM FILE IDS RULE

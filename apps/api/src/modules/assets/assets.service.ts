@@ -62,6 +62,7 @@ export class AssetsService {
       chatId,
       filename,
       mimeType,
+      role,
       displayName: originalFilename,
       data,
       thumbnailData,
