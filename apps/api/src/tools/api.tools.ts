@@ -86,16 +86,16 @@ export class ApiTools {
         fileId,
       );
       result.push({
-        content: {
-          type: 'file',
-          mimeType: file.mimeType,
-          data: file.data.toString('base64'),
-          fileName: file.displayName,
-        },
+        base64: file.data.toString('base64'),
+        fileId,
+        fileName: file.displayName,
       });
     }
 
-    return result;
+    return {
+      action: 'process_file',
+      files: result,
+    };
   }
 
   @Tool({
