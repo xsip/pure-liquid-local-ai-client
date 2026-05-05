@@ -17,6 +17,7 @@ export function fileSizeLabel(dataUrl: string): string {
 export interface AppendedFile {
   type: 'input_image' | 'input_file';
   filename: string;
+  id?: string;
   sizeKb?: number;
   assetUrl?: string;
   fileName?: string;

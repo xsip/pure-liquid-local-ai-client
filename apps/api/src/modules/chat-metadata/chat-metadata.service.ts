@@ -253,6 +253,7 @@ export class ChatMetadataService {
       sizeKb,
       assetUrl,
       filename: originalFilename,
+      internalFilename: mdl.filename,
     };
   }
 }

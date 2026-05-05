@@ -28,7 +28,7 @@ import { MarkdownPipe } from '../lm-studio-api/markdown.pipe';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroPencilSquare, heroEye, heroLink, heroDocument, heroXMark } from '@ng-icons/heroicons/outline';
 import { ChatService } from './chat.service';
-import { Observable, Subject, switchMap, take } from 'rxjs';
+import { Observable, of, Subject, switchMap, take } from 'rxjs';
 
 // Re-export AppendedFile so existing consumers importing from this file keep working.
 export type { AppendedFile };
@@ -389,8 +389,7 @@ export class OpenAiChatInputComponent implements AfterViewInit, AfterViewChecked
 
     const file = files[0];
 
-    if (!this.chatService.currentChatId()) {
-      this.newChatIdProvider()()
+      (this.chatService.currentChatId() ? of(this.chatService.currentChatId()!) : this.newChatIdProvider()())
         .pipe(
           take(1),
           switchMap((chatId) => this.chatMetadataService.uploadFile(chatId, file)),
@@ -401,6 +400,7 @@ export class OpenAiChatInputComponent implements AfterViewInit, AfterViewChecked
               {
                 type: 'input_file',
                 filename: res.filename,
+                id: res.internalFilename,
                 assetUrl: res.assetUrl,
                 sizeKb: res.sizeKb,
               },
@@ -411,12 +411,6 @@ export class OpenAiChatInputComponent implements AfterViewInit, AfterViewChecked
           console.log(res);
         });
       return;
-    }
-
-    this.chatMetadataService
-      .uploadFile(this.chatService.currentChatId()!, file)
-      .pipe(take(1))
-      .subscribe();
   }
 
   /*

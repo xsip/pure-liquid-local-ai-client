@@ -135,7 +135,7 @@ export class ChatService {
       ]);
     }*/
 
-    this.chatMessages.update((msgs) => [...msgs, { role: 'user', text: input, date: new Date() }]);
+    this.chatMessages.update((msgs) => [...msgs, { role: 'user', text: (appendedFiles?.map(f => `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`).join('\n') ?? '') +  (appendedFiles?.length ? '  \n' : '') + input, date: new Date() }]);
 
     this.streamService.reset();
     this.sub?.unsubscribe();
@@ -387,13 +387,13 @@ export class ChatService {
       {
         model: selectedModelId,
         input: [
-          ...((appendedFiles as any[]) ?? []).map((f) => {
+          ...((appendedFiles) ?? []).map((f) => {
             return {
               role: 'system',
               content: [
                 {
                   type: 'input_text',
-                  text: `Get file contents by passing "${f.filename}" to the "get-content-from-file-ids".`,
+                  text: `Get file contents by passing "${f.id}" to the "get-content-from-file-ids" tool.`,
                 },
               ],
             };
@@ -403,7 +403,7 @@ export class ChatService {
             content: [
               {
                 type: 'input_text',
-                text: (appendedFiles?.map(f => `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`).join('\n') ?? '') + '  \n' + input,
+                text: (appendedFiles?.map(f => `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`).join('\n') ?? '') +  (appendedFiles?.length ? '  \n' : '') + input,
               },
             ],
           },

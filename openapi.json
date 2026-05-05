@@ -2349,12 +2349,17 @@
           "filename": {
             "type": "string",
             "description": "Filename"
+          },
+          "internalFilename": {
+            "type": "string",
+            "description": "Internal Filename"
           }
         },
         "required": [
           "sizeKb",
           "assetUrl",
-          "filename"
+          "filename",
+          "internalFilename"
         ]
       },
       "ResponseConversationParamDto": {

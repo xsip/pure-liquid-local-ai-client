@@ -20,6 +20,8 @@ export class CreateAndAddToUserAssetsResponseDto {
   assetUrl: string;
   @ApiProperty({ description: 'Filename' })
   filename: string;
+  @ApiProperty({ description: 'Internal Filename' })
+  internalFilename: string;
 }
 
 export class CreateChatMetadataDto {
