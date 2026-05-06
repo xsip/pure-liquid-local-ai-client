@@ -463,7 +463,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
 
         @if (showInfoPanel()) {
           <div
-            class="w-72 shrink-0 border-l border-border-default z-10 bg-surface-raised md:relative fixed md:h-auto h-full top-0 right-0 flex flex-col overflow-hidden"
+            class="w-72 shrink-0 border-l border-border-default md:z-0 z-10 bg-surface-raised md:relative fixed md:h-auto h-full top-0 right-0 flex flex-col overflow-hidden"
             @infoPanelAnim
           >
             <div

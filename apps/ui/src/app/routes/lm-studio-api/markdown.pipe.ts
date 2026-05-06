@@ -15,7 +15,7 @@ import {
   Pipe,
   PipeTransform,
   signal,
-  ViewEncapsulation
+  ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
@@ -24,6 +24,7 @@ import katex from 'katex';
 import Prism from 'prismjs';
 import { Observable } from 'rxjs';
 import { map, publishReplay, refCount } from 'rxjs/operators';
+import { animate, style, transition, trigger } from '@angular/animations';
 
 // ── KaTeX extensions for marked ─────────────────────────────────────────────
 
@@ -102,290 +103,42 @@ const fileIconGeneric = _svgWrap(
   '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
 );
 
-@Component({
-  selector: 'app-file-card',
-  standalone: true,
-  encapsulation: ViewEncapsulation.None,
-  template: `
-    <div
-      class="group my-3 flex items-center gap-3 rounded-xl px-4 py-3 border border-border-default bg-surface-raised shadow-sm transition-all duration-200 cursor-pointer hover-lift"
-      (click)="onCardClick($event)"
-    >
-      <!-- File type icon -->
-      <div
-        class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-overlay"
-        [style.color]="colour"
-        [innerHTML]="icon"
-      ></div>
 
-      <!-- Filename + meta -->
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span
-            class="{{
-              style === 'chat' ? 'text-[14px]' : 'text-[12px]'
-            }} font-medium truncate max-w-[280px] text-text-primary"
-            [title]="filename"
-            >{{ filename }}</span
-          >
-          <span
-            class="text-[10px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-overlay"
-            [style.color]="colour"
-            >{{ ext }}</span
-          >
-          @if (size) {
-            <span
-              class="text-[11px] font-medium px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted"
-            >
-              {{ size }} KB
-            </span>
-          }
-        </div>
-        <p class="text-[11px] mt-0.5 truncate text-text-muted">{{ url }}</p>
-      </div>
-
-      <!-- Download button -->
-      <a
-        (click)="onDownloadClick($event)"
-        [title]="'Download ' + filename"
-        class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border border-accent-text bg-accent-subtle text-accent-text opacity-100 transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
-      >
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 15 15"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M7.5 1.5v8M4.5 7l3 3 3-3M2.5 11.5h10"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </a>
-    </div>
-
-    <!-- ── HTML Preview Overlay ── -->
-    @if (previewOpen()) {
-      <div
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        style="background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);"
-        (click)="closePreview($event)"
-      >
-        <div
-          class="relative flex flex-col rounded-2xl border border-border-default bg-surface-raised overflow-hidden shadow-xl"
-          style="width: min(92vw, 960px); height: min(88vh, 720px);"
-          (click)="$event.stopPropagation()"
-        >
-          <!-- Header bar -->
-          <div
-            class="flex items-center gap-3 px-4 py-2.5 border-b border-border-default bg-surface-overlay flex-shrink-0"
-          >
-            <!-- Traffic-light dots -->
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-error-text opacity-70"></span>
-              <span class="w-3 h-3 rounded-full bg-warn-text opacity-70"></span>
-              <span class="w-3 h-3 rounded-full bg-success-text opacity-70"></span>
-            </div>
-
-            <!-- Filename pill -->
-            <div
-              class="flex-1 flex items-center gap-2 px-3 py-1 rounded-lg text-[12px] font-mono truncate bg-surface-base text-text-secondary border border-border-subtle"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 15 15"
-                fill="none"
-                class="flex-shrink-0 opacity-50"
-              >
-                <path
-                  d="M2 2.5A.5.5 0 0 1 2.5 2h6.086a.5.5 0 0 1 .353.146l3.915 3.915A.5.5 0 0 1 13 6.415V12.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10z"
-                  stroke="currentColor"
-                  stroke-width="1.2"
-                />
-              </svg>
-              <span class="truncate">{{ filename }}</span>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="flex items-center gap-1.5 flex-shrink-0">
-              <!-- Open externally -->
-              <button
-                (click)="openExternal($event)"
-                title="Open in new tab"
-                class="w-7 h-7 rounded-lg flex items-center justify-center border border-accent-text bg-accent-subtle text-accent-text transition-all duration-150 hover:scale-105 active:scale-95"
-              >
-                <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
-                  <path
-                    d="M3 2h9v9M12 3 5 10"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </button>
-
-              <!-- Close -->
-              <button
-                (click)="closePreview($event)"
-                title="Close preview"
-                class="w-7 h-7 rounded-lg flex items-center justify-center border border-border-default bg-surface-sunken text-text-secondary transition-all duration-150 hover:scale-105 active:scale-95"
-              >
-                <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
-                  <path
-                    d="M2 2l11 11M13 2 2 13"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- iframe content -->
-          <div class="flex-1 overflow-hidden bg-white">
-            @if (previewSrc()) {
-              <iframe
-                [src]="previewSrc()!"
-                class="w-full h-full border-0"
-                sandbox="allow-scripts allow-same-origin"
-                title="HTML Preview"
-              ></iframe>
-            } @else {
-              <!-- Loading skeleton -->
-              <div
-                class="w-full h-full flex flex-col items-center justify-center gap-3 bg-surface-base"
-              >
-                <div class="shimmer-bg rounded-lg" style="width: 220px; height: 16px;"></div>
-                <div class="shimmer-bg rounded-lg" style="width: 160px; height: 12px;"></div>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-    }
-  `,
-})
-export class FileCardComponent {
-  @Input() filename = '';
-  @Input() url = '';
-  @Input() style: 'chat' | 'sidebar' = 'chat';
-  @Input() size = 0;
-  @Input() ext = 'file';
-  @Input() mimeType?: string = '';
-
-  readonly previewOpen = signal(false);
-  readonly previewSrc = signal<SafeResourceUrl | null>(null);
-
-  private readonly http = inject(HttpClient);
+// ── MarkdownPipe ─────────────────────────────────────────────────────────────
+@Pipe({ name: 'markdown', standalone: true })
+export class MarkdownPipe implements PipeTransform {
   private readonly sanitizer = inject(DomSanitizer);
-  private static readonly cache = new Map<string, string | Observable<string>>();
 
-  get colour(): string {
-    return FILE_TYPE_MAP[this.ext]?.colour ?? 'var(--color-text-muted)';
-  }
-
-  get icon(): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(FILE_TYPE_MAP[this.ext]?.icon ?? fileIconGeneric);
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscapeKey(): void {
-    if (this.previewOpen()) this.previewOpen.set(false);
-  }
-
-  onCardClick(e: MouseEvent): void {
-    if (this.ext === 'html') {
-      this.openHtmlPreview();
-    } else {
-      this.fetchBlobUrl(this.url).subscribe({
-        next: (blobUrl) => window.open(blobUrl, '_blank', 'noopener,noreferrer'),
-        error: () => console.warn(`[FileCardComponent] Failed to open: ${this.url}`),
-      });
-    }
-  }
-
-  onDownloadClick(e: MouseEvent): void {
-    e.preventDefault();
-    e.stopPropagation();
-    this.fetchBlobUrl(this.url).subscribe({
-      next: (blobUrl) => {
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = this.filename;
-        a.click();
-      },
-      error: () => console.warn(`[FileCardComponent] Failed to download: ${this.url}`),
-    });
-  }
-
-  openExternal(e: MouseEvent): void {
-    e.stopPropagation();
-    this.fetchBlobUrl(this.url).subscribe({
-      next: (blobUrl) => window.open(blobUrl, '_blank', 'noopener,noreferrer'),
-      error: () => console.warn(`[FileCardComponent] Failed to open externally: ${this.url}`),
-    });
-  }
-
-  closePreview(e: MouseEvent): void {
-    e.stopPropagation();
-    this.previewOpen.set(false);
-  }
-
-  private openHtmlPreview(): void {
-    this.previewSrc.set(null);
-    this.previewOpen.set(true);
-
-    this.fetchBlobUrl(this.url).subscribe({
-      next: (blobUrl) => {
-        this.previewSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl));
-      },
-      error: () => {
-        console.warn(`[FileCardComponent] Failed to load HTML preview: ${this.url}`);
-        this.previewOpen.set(false);
-      },
-    });
-  }
-
-  private fetchBlobUrl(src: string): Observable<string> {
-    const cached = FileCardComponent.cache.get(src);
-    if (typeof cached === 'string')
-      return new Observable((o) => {
-        o.next(cached);
-        o.complete();
-      });
-    if (cached instanceof Observable) return cached;
-
-    const token = localStorage.getItem('jwt_token') ?? '';
-    const blobUrl$ = this.http
-      .get(src, { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } })
-      .pipe(
-        map((blob) => {
-          const blobUrl = URL.createObjectURL(blob);
-          FileCardComponent.cache.set(src, blobUrl);
-          return blobUrl;
-        }),
-        publishReplay(1),
-        refCount(),
-      );
-
-    FileCardComponent.cache.set(src, blobUrl$);
-    return blobUrl$;
-  }
-
-  static clearCache(): void {
-    FileCardComponent.cache.forEach((entry) => {
-      if (typeof entry === 'string') URL.revokeObjectURL(entry);
-    });
-    FileCardComponent.cache.clear();
+  transform(value: string | null | undefined, streaming = false): SafeHtml {
+    if (!value) return '';
+    const safe = streaming ? closeOpenCodeBlocks(value) : value;
+    const html = marked.parse(safe, { async: false }) as string;
+    return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 }
+
+// ── StripMarkdownPipe ────────────────────────────────────────────────────────
+@Pipe({ name: 'stripMarkdown', standalone: true })
+export class StripMarkdownPipe implements PipeTransform {
+  transform(value: string | null | undefined): string {
+    if (!value) return '';
+    return value
+      .replace(/\$\$[\s\S]*?\$\$/g, '')
+      .replace(/\$(?!\$)((?:[^$\\]|\\[\s\S])+?)\$/g, '')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`]*`/g, '')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^[-*+]\s+/gm, '')
+      .replace(/^\d+\.\s+/gm, '')
+      .replace(/^>\s+/gm, '')
+      .replace(/\n{2,}/g, ' ')
+      .replace(/\n/g, ' ')
+      .trim();
+  }
+}
+
 
 const FILE_TYPE_MAP: Record<string, { icon: string; colour: string }> = {
   pdf: { icon: fileIconPdf, colour: 'var(--color-error-text)' },
@@ -416,7 +169,11 @@ const FILE_TYPE_MAP: Record<string, { icon: string; colour: string }> = {
   standalone: true,
   encapsulation: ViewEncapsulation.None,
   template: `
-    <div class="my-4 rounded-lg overflow-x-auto border border-code-border bg-code-bg text-[13.5px]">
+    <div
+      class="{{
+        mode === 'inAppPreview' ? 'h-full overflow-y-hidden flex flex-col-reverse' : 'my-4'
+      }} rounded-lg overflow-x-auto  border border-code-border bg-code-bg text-[13.5px]"
+    >
       <div
         class="flex items-center justify-between px-3.5 py-1.5 bg-code-header border-b border-code-border"
       >
@@ -431,8 +188,11 @@ const FILE_TYPE_MAP: Record<string, { icon: string; colour: string }> = {
         </button>
       </div>
       <pre
-        class="m-0 px-4 py-3.5 overflow-x-auto max-w-full whitespace-pre bg-transparent"
-        [class]="'language-' + lang"
+        class="m-0 px-4 py-3.5 {{
+          mode === 'inAppPreview'
+            ? 'h-[98%] overflow-y-scroll overflow-x-scroll '
+            : 'overflow-x-auto '
+        }} max-w-full  whitespace-pre bg-transparent {{language-' + lang}}"
       ><code
         [class]="'font-mono text-[13.5px] leading-[1.65] bg-transparent language-' + lang + ' text-code-variable'"
         [innerHTML]="highlighted"
@@ -443,6 +203,7 @@ const FILE_TYPE_MAP: Record<string, { icon: string; colour: string }> = {
 export class CodeBlockComponent {
   @Input() lang = 'plaintext';
   @Input() rawText = '';
+  @Input() mode?: 'inAppPreview' | 'default' = 'default';
 
   copyLabel = 'Copy';
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -484,6 +245,685 @@ export class CodeBlockComponent {
   }
 }
 
+// ── helpers (add near FILE_TYPE_MAP or top of file) ──────────────────────────
+const IMAGE_EXTS  = new Set(['png','jpg','jpeg','gif','webp','svg','bmp','ico','avif','tiff']);
+const PREVIEWABLE = new Set(['html', 'ts', 'tsx', 'js','txt', 'py', ...IMAGE_EXTS]);
+export const EXT_TO_PRISM_LANG: Record<string, string> = {
+  // Web
+  html: 'markup',
+  htm: 'markup',
+  xml: 'markup',
+  svg: 'markup',
+  mathml: 'markup',
+  ssml: 'markup',
+  atom: 'markup',
+  rss: 'markup',
+  css: 'css',
+  scss: 'scss',
+  sass: 'sass',
+  less: 'less',
+  styl: 'stylus',
+
+  // JavaScript / TypeScript
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  jsx: 'jsx',
+  ts: 'typescript',
+  tsx: 'tsx',
+  coffee: 'coffeescript',
+  ls: 'livescript',
+
+  // C family
+  c: 'c',
+  h: 'c',
+  cpp: 'cpp',
+  cc: 'cpp',
+  cxx: 'cpp',
+  hpp: 'cpp',
+  hxx: 'cpp',
+  cs: 'csharp',
+  fs: 'fsharp',
+  fsx: 'fsharp',
+
+  // JVM
+  java: 'java',
+  kt: 'kotlin',
+  kts: 'kotlin',
+  groovy: 'groovy',
+  gradle: 'groovy',
+  scala: 'scala',
+  clj: 'clojure',
+  cljs: 'clojure',
+
+  // Scripting
+  py: 'python',
+  pyw: 'python',
+  rb: 'ruby',
+  rake: 'ruby',
+  gemspec: 'ruby',
+  php: 'php',
+  php3: 'php',
+  php4: 'php',
+  php5: 'php',
+  phtml: 'php',
+  pl: 'perl',
+  pm: 'perl',
+  lua: 'lua',
+  r: 'r',
+  jl: 'julia',
+
+  // Shell
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  fish: 'bash',
+  ps1: 'powershell',
+  psm1: 'powershell',
+  psd1: 'powershell',
+  bat: 'batch',
+  cmd: 'batch',
+
+  // Data / Config
+  json: 'json',
+  json5: 'json5',
+  jsonp: 'jsonp',
+  yaml: 'yaml',
+  yml: 'yaml',
+  toml: 'toml',
+  ini: 'ini',
+  cfg: 'ini',
+  conf: 'nginx', // fallback; common for nginx/apache configs
+  env: 'bash',
+  properties: 'properties',
+  prop: 'properties',
+
+  // Markup / Docs
+  md: 'markdown',
+  mdx: 'markdown',
+  markdown: 'markdown',
+  tex: 'latex',
+  latex: 'latex',
+  rst: 'rest',
+  adoc: 'asciidoc',
+  asciidoc: 'asciidoc',
+
+  // Query
+  sql: 'sql',
+  graphql: 'graphql',
+  gql: 'graphql',
+
+  // Systems / Low-level
+  rs: 'rust',
+  go: 'go',
+  swift: 'swift',
+  dart: 'dart',
+  zig: 'c', // no dedicated prism lang; c is closest
+  asm: 'nasm',
+  s: 'nasm',
+  nasm: 'nasm',
+
+  // Functional
+  hs: 'haskell',
+  lhs: 'haskell',
+  elm: 'elm',
+  ex: 'elixir',
+  exs: 'elixir',
+  erl: 'erlang',
+  hrl: 'erlang',
+  ml: 'ocaml',
+  mli: 'ocaml',
+  re: 'reason',
+  rei: 'reason',
+  lisp: 'lisp',
+  scm: 'scheme',
+  rkt: 'scheme',
+
+  // DevOps / Infra
+  dockerfile: 'docker',
+  tf: 'hcl',
+  hcl: 'hcl',
+  nomad: 'hcl',
+  makefile: 'makefile',
+  mk: 'makefile',
+  cmake: 'cmake',
+  nginx: 'nginx',
+  apacheconf: 'apacheconf',
+  htaccess: 'apacheconf',
+
+  // Templates
+  ejs: 'ejs',
+  hbs: 'handlebars',
+  handlebars: 'handlebars',
+  mustache: 'handlebars',
+  pug: 'pug',
+  jade: 'pug',
+  twig: 'twig',
+  liquid: 'liquid',
+  erb: 'erb',
+  njk: 'markup', // nunjucks — closest is markup
+
+  // Other
+  diff: 'diff',
+  patch: 'diff',
+  txt: 'plain',
+  log: 'plain',
+  csv: 'plain',
+  proto: 'protobuf',
+  vim: 'vim',
+  gd: 'gdscript',
+  glsl: 'glsl',
+  hlsl: 'glsl',
+  wgsl: 'glsl',
+  mat: 'matlab',
+  m: 'matlab',
+  pas: 'pascal',
+  pp: 'pascal',
+  nim: 'nim',
+  cr: 'crystal',
+  v: 'c', // Verilog — no prism lang; c is closest
+};
+type PreviewKind = 'html' | 'image' | 'unsupported';
+
+@Component({
+  selector: 'app-file-card',
+  standalone: true,
+  imports: [MarkdownPipe, CodeBlockComponent],
+  animations: [
+    trigger('backdropAnim', [
+      transition(':enter', [
+        style({ opacity: 0, backdropFilter: 'blur(0px)' }),
+        animate('200ms ease-out', style({ opacity: 1 })),
+      ]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))]),
+    ]),
+    trigger('cardAnim', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.88) translateY(12px)' }),
+        animate(
+          '280ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+          style({ opacity: 1, transform: 'scale(1) translateY(0)' }),
+        ),
+      ]),
+      transition(':leave', [
+        animate(
+          '150ms cubic-bezier(0.4, 0, 1, 1)',
+          style({ opacity: 0, transform: 'scale(0.94) translateY(6px)' }),
+        ),
+      ]),
+    ]),
+  ],
+  encapsulation: ViewEncapsulation.None,
+  template: `
+    <div
+      class="group my-3 flex items-center gap-3 rounded-xl px-4 py-3 border border-border-default bg-surface-raised shadow-sm transition-all duration-200 cursor-pointer hover-lift"
+      (click)="onCardClick($event)"
+    >
+      <!-- File type icon -->
+      <div
+        class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-surface-overlay"
+        [style.color]="colour"
+        [innerHTML]="icon"
+      ></div>
+
+      <!-- Filename + meta -->
+      <div class="flex-1 min-w-0">
+        <div class="flex md:flex-row flex-col items-start md:items-center gap-2 flex-wrap">
+          <span
+            class="{{
+              style === 'chat' ? 'text-[14px]' : 'text-[12px]'
+            }} font-medium truncate max-w-[280px] text-text-primary"
+            [title]="filename"
+            >{{ filename }}</span
+          >
+          <div class="block md:hidden flex gap-2">
+            <span
+              class="text-[10px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-overlay"
+              [style.color]="colour"
+              >{{ ext }}</span
+            >
+            @if (size) {
+              <span
+                class="text-[11px] font-medium px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted"
+              >
+                {{ size }} KB
+              </span>
+            }
+          </div>
+          <span
+            class="text-[10px] hidden md:block font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-overlay"
+            [style.color]="colour"
+            >{{ ext }}</span
+          >
+          @if (size) {
+            <span
+              class="text-[11px] hidden md:block font-medium px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted"
+            >
+              {{ size }} KB
+            </span>
+          }
+        </div>
+        <p class="text-[11px] mt-0.5 truncate text-text-muted">{{ url }}</p>
+      </div>
+
+      <!-- Download button -->
+      <a
+        (click)="onDownloadClick($event)"
+        [title]="'Download ' + filename"
+        class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border border-accent-text bg-accent-subtle text-accent-text opacity-100 transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 15 15"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M7.5 1.5v8M4.5 7l3 3 3-3M2.5 11.5h10"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </a>
+    </div>
+
+    <!-- ── HTML Preview Overlay ── -->
+    @if (previewOpen()) {
+      <div
+        @backdropAnim
+        class="fixed top-0 left-0 inset-0 z-10 flex items-center justify-center"
+        style="background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);"
+        (click)="closePreview($event)"
+      >
+        <div
+          @cardAnim
+          class="relative flex flex-col rounded-2xl border border-border-default bg-surface-raised overflow-hidden shadow-xl"
+          style="width: min(92vw, 960px); height: min(88vh, 720px);"
+          (click)="$event.stopPropagation()"
+        >
+          <!-- Header bar -->
+          <div
+            class="flex items-center gap-3 px-4 py-2.5 border-b border-border-default bg-surface-overlay flex-shrink-0"
+          >
+            <!-- Traffic-light dots -->
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-error-text opacity-70"></span>
+              <span class="w-3 h-3 rounded-full bg-warn-text opacity-70"></span>
+              <span class="w-3 h-3 rounded-full bg-success-text opacity-70"></span>
+            </div>
+
+            <!-- Filename pill -->
+            <div
+              class="flex-1 flex items-center gap-2 px-3 py-1 rounded-lg text-[12px] font-mono truncate bg-surface-base text-text-secondary border border-border-subtle"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 15 15"
+                fill="none"
+                class="flex-shrink-0 opacity-50"
+              >
+                <path
+                  d="M2 2.5A.5.5 0 0 1 2.5 2h6.086a.5.5 0 0 1 .353.146l3.915 3.915A.5.5 0 0 1 13 6.415V12.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10z"
+                  stroke="currentColor"
+                  stroke-width="1.2"
+                />
+              </svg>
+              <span class="truncate">{{ filename }}</span>
+            </div>
+
+            <!-- Preview / Code toggle -->
+            <div
+              class="flex items-center rounded-lg border border-border-default bg-surface-base p-0.5 gap-0.5 flex-shrink-0"
+            >
+              <button
+                (click)="previewMode.set('preview'); $event.stopPropagation()"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-150"
+                [class.bg-surface-overlay]="previewMode() === 'preview'"
+                [class.text-text-primary]="previewMode() === 'preview'"
+                [class.text-text-muted]="previewMode() !== 'preview'"
+              >
+                <!-- Eye icon -->
+                <svg width="11" height="11" viewBox="0 0 15 15" fill="none">
+                  <path
+                    d="M7.5 3C4 3 1 7.5 1 7.5s3 4.5 6.5 4.5S14 7.5 14 7.5 11 3 7.5 3z"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="7.5" cy="7.5" r="1.5" stroke="currentColor" stroke-width="1.4" />
+                </svg>
+                Preview
+              </button>
+              <button
+                (click)="previewMode.set('code'); $event.stopPropagation()"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-150"
+                [class.bg-surface-overlay]="previewMode() === 'code'"
+                [class.text-text-primary]="previewMode() === 'code'"
+                [class.text-text-muted]="previewMode() !== 'code'"
+              >
+                <!-- Code icon -->
+                <svg width="11" height="11" viewBox="0 0 15 15" fill="none">
+                  <path
+                    d="M5 4L1 7.5 5 11M10 4l4 3.5L10 11"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Code
+              </button>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <!-- Open externally -->
+              <button
+                (click)="openExternal($event)"
+                title="Open in new tab"
+                class="w-7 h-7 rounded-lg flex items-center justify-center border border-accent-text bg-accent-subtle text-accent-text transition-all duration-150 hover:scale-105 active:scale-95"
+              >
+                <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
+                  <path
+                    d="M3 2h9v9M12 3 5 10"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+
+              <!-- Close -->
+              <button
+                (click)="closePreview($event)"
+                title="Close preview"
+                class="w-7 h-7 rounded-lg flex items-center justify-center border border-border-default bg-surface-sunken text-text-secondary transition-all duration-150 hover:scale-105 active:scale-95"
+              >
+                <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
+                  <path
+                    d="M2 2l11 11M13 2 2 13"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Content area -->
+          <div class="flex-1 overflow-hidden">
+            <!-- Preview tab -->
+            @if (previewMode() === 'preview') {
+              <!-- HTML → iframe -->
+              @if (previewKind() === 'html') {
+                <div class="w-full h-full bg-white">
+                  @if (previewSrc()) {
+                    <iframe
+                      [src]="previewSrc()!"
+                      class="w-full h-full border-0"
+                      sandbox="allow-scripts allow-same-origin"
+                      title="HTML Preview"
+                    ></iframe>
+                  } @else {
+                    <div
+                      class="w-full h-full flex flex-col items-center justify-center gap-3 bg-surface-base"
+                    >
+                      <div class="shimmer-bg rounded-lg" style="width: 220px; height: 16px;"></div>
+                      <div class="shimmer-bg rounded-lg" style="width: 160px; height: 12px;"></div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Image → <img> -->
+              @if (previewKind() === 'image') {
+                <div
+                  class="w-full h-full flex items-center justify-center bg-[repeating-conic-gradient(#80808018_0%_25%,transparent_0%_50%)] bg-[length:20px_20px]"
+                >
+                  @if (previewSrc()) {
+                    <img
+                      [src]="previewSrc()!"
+                      class="max-w-full max-h-full object-contain rounded shadow-lg"
+                      [alt]="filename"
+                    />
+                  } @else {
+                    <div class="flex flex-col items-center justify-center gap-3">
+                      <div class="shimmer-bg rounded-lg" style="width: 220px; height: 16px;"></div>
+                      <div class="shimmer-bg rounded-lg" style="width: 160px; height: 12px;"></div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Unsupported → message -->
+              @if (previewKind() === 'unsupported') {
+                <div
+                  class="w-full h-full flex flex-col items-center justify-center gap-3 bg-surface-base select-none"
+                >
+                  <svg
+                    width="36"
+                    height="36"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="text-text-muted opacity-40"
+                  >
+                    <path
+                      d="M9 12h6M12 9v6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <p class="text-[13px] font-medium text-text-muted">
+                    Can't preview this file type
+                  </p>
+                  <button
+                    (click)="previewMode.set('code'); $event.stopPropagation()"
+                    class="mt-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-accent-text bg-accent-subtle text-accent-text transition-all duration-150 hover:scale-105 active:scale-95"
+                  >
+                    View in Code
+                  </button>
+                </div>
+              }
+            }
+
+            <!-- Code tab: syntax-highlighted -->
+            @if (previewMode() === 'code') {
+              @if (rawContent()) {
+                <app-code-block
+                  [mode]="'inAppPreview'"
+                  [lang]="EXT_TO_PRISM_LANG[ext] ?? 'plaintext'"
+                  [rawText]="rawContent() ?? ''"
+                />
+              } @else {
+                <div class="w-full h-full overflow-hidden bg-code-bg">
+                  <div class="w-full h-full flex flex-col items-center justify-center gap-3">
+                    <div class="shimmer-bg rounded-lg" style="width: 220px; height: 16px;"></div>
+                    <div class="shimmer-bg rounded-lg" style="width: 160px; height: 12px;"></div>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
+  `,
+})
+export class FileCardComponent {
+  EXT_TO_PRISM_LANG = EXT_TO_PRISM_LANG;
+  @Input() filename = '';
+  @Input() url = '';
+  @Input() style: 'chat' | 'sidebar' = 'chat';
+  @Input() size = 0;
+  @Input() ext = 'file';
+  @Input() mimeType?: string = '';
+
+  readonly previewOpen = signal(false);
+  readonly previewMode = signal<'preview' | 'code'>('preview');
+  readonly previewSrc = signal<SafeResourceUrl | null>(null);
+  readonly rawContent = signal<string | null>(null);
+  readonly previewKind = signal<PreviewKind>('html'); // ← new
+
+  private readonly http = inject(HttpClient);
+  private readonly sanitizer = inject(DomSanitizer);
+  private static readonly cache = new Map<string, string | Observable<string>>();
+
+  get colour(): string {
+    return FILE_TYPE_MAP[this.ext]?.colour ?? 'var(--color-text-muted)';
+  }
+
+  get icon(): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(FILE_TYPE_MAP[this.ext]?.icon ?? fileIconGeneric);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.previewOpen()) this.previewOpen.set(false);
+  }
+
+  onCardClick(e: MouseEvent): void {
+    if (PREVIEWABLE.has(this.ext)) {
+      this.openInAppPreview();
+    } else {
+      this.fetchBlobUrl(this.url).subscribe({
+        next: (blobUrl) => window.open(blobUrl, '_blank', 'noopener,noreferrer'),
+        error: () => console.warn(`[FileCardComponent] Failed to open: ${this.url}`),
+      });
+    }
+  }
+
+  onDownloadClick(e: MouseEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    this.fetchBlobUrl(this.url).subscribe({
+      next: (blobUrl) => {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = this.filename;
+        a.click();
+      },
+      error: () => console.warn(`[FileCardComponent] Failed to download: ${this.url}`),
+    });
+  }
+
+  openExternal(e: MouseEvent): void {
+    e.stopPropagation();
+    this.fetchBlobUrl(this.url).subscribe({
+      next: (blobUrl) => window.open(blobUrl, '_blank', 'noopener,noreferrer'),
+      error: () => console.warn(`[FileCardComponent] Failed to open externally: ${this.url}`),
+    });
+  }
+
+  closePreview(e: MouseEvent): void {
+    e.stopPropagation();
+    this.previewOpen.set(false);
+  }
+
+  // ── unified entry point ────────────────────────────────────────────────────
+  private openInAppPreview(): void {
+    this.previewSrc.set(null);
+    this.rawContent.set(null);
+    this.previewOpen.set(true);
+
+    if (this.ext === 'html') {
+      this.previewKind.set('html');
+      this.previewMode.set('preview');
+      this.loadHtml();
+    } else if (IMAGE_EXTS.has(this.ext)) {
+      this.previewKind.set('image');
+      this.previewMode.set('preview');
+      this.loadImage();
+    } else {
+      // ALL other types: unsupported visual preview, raw text in code tab
+      this.previewKind.set('unsupported');
+      this.previewMode.set('preview');
+      this.loadRawText();
+    }
+  }
+
+  // ── loaders ───────────────────────────────────────────────────────────────
+  private loadHtml(): void {
+    const token = localStorage.getItem('jwt_token') ?? '';
+    this.http
+      .get(this.url, { responseType: 'text', headers: { Authorization: `Bearer ${token}` } })
+      .subscribe({
+        next: (text) => {
+          this.rawContent.set(text);
+          const blob = new Blob([text], { type: 'text/html' });
+          const blobUrl = URL.createObjectURL(blob);
+          FileCardComponent.cache.set(this.url, blobUrl);
+          this.previewSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl));
+        },
+        error: () => {
+          console.warn(`[FileCardComponent] Failed to load HTML preview: ${this.url}`);
+          this.previewOpen.set(false);
+        },
+      });
+  }
+
+  private loadImage(): void {
+    this.fetchBlobUrl(this.url).subscribe({
+      next: (blobUrl) =>
+        this.previewSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl)),
+      error: () => {
+        console.warn(`[FileCardComponent] Failed to load image preview: ${this.url}`);
+        this.previewOpen.set(false);
+      },
+    });
+  }
+
+  private loadRawText(): void {
+    const token = localStorage.getItem('jwt_token') ?? '';
+    this.http
+      .get(this.url, { responseType: 'text', headers: { Authorization: `Bearer ${token}` } })
+      .subscribe({
+        next: (text) => this.rawContent.set(text),
+        error: () => console.warn(`[FileCardComponent] Failed to load raw content: ${this.url}`),
+      });
+  }
+
+  // ── blob cache ────────────────────────────────────────────────────────────
+  private fetchBlobUrl(src: string): Observable<string> {
+    const cached = FileCardComponent.cache.get(src);
+    if (typeof cached === 'string')
+      return new Observable((o) => {
+        o.next(cached);
+        o.complete();
+      });
+    if (cached instanceof Observable) return cached;
+
+    const token = localStorage.getItem('jwt_token') ?? '';
+    const blobUrl$ = this.http
+      .get(src, { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } })
+      .pipe(
+        map((blob) => {
+          const blobUrl = URL.createObjectURL(blob);
+          FileCardComponent.cache.set(src, blobUrl);
+          return blobUrl;
+        }),
+        publishReplay(1),
+        refCount(),
+      );
+
+    FileCardComponent.cache.set(src, blobUrl$);
+    return blobUrl$;
+  }
+
+  static clearCache(): void {
+    FileCardComponent.cache.forEach((entry) => {
+      if (typeof entry === 'string') URL.revokeObjectURL(entry);
+    });
+    FileCardComponent.cache.clear();
+  }
+}
 // ── ImageLightboxComponent ────────────────────────────────────────────────────
 // Singleton Angular component bootstrapped once into document.body.
 // Call ImageLightboxComponent.open(url, http) / showCtxMenu() from anywhere.
@@ -1302,37 +1742,3 @@ export function closeOpenCodeBlocks(text: string): string {
   return text.endsWith('\n') ? text + closingFence : text + '\n' + closingFence;
 }
 
-// ── MarkdownPipe ─────────────────────────────────────────────────────────────
-@Pipe({ name: 'markdown', standalone: true })
-export class MarkdownPipe implements PipeTransform {
-  private readonly sanitizer = inject(DomSanitizer);
-
-  transform(value: string | null | undefined, streaming = false): SafeHtml {
-    if (!value) return '';
-    const safe = streaming ? closeOpenCodeBlocks(value) : value;
-    const html = marked.parse(safe, { async: false }) as string;
-    return this.sanitizer.bypassSecurityTrustHtml(html);
-  }
-}
-
-// ── StripMarkdownPipe ────────────────────────────────────────────────────────
-@Pipe({ name: 'stripMarkdown', standalone: true })
-export class StripMarkdownPipe implements PipeTransform {
-  transform(value: string | null | undefined): string {
-    if (!value) return '';
-    return value
-      .replace(/\$\$[\s\S]*?\$\$/g, '')
-      .replace(/\$(?!\$)((?:[^$\\]|\\[\s\S])+?)\$/g, '')
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`[^`]*`/g, '')
-      .replace(/^#{1,6}\s+/gm, '')
-      .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/^[-*+]\s+/gm, '')
-      .replace(/^\d+\.\s+/gm, '')
-      .replace(/^>\s+/gm, '')
-      .replace(/\n{2,}/g, ' ')
-      .replace(/\n/g, ' ')
-      .trim();
-  }
-}

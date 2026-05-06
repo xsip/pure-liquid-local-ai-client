@@ -169,7 +169,7 @@ export type { AppendedFile };
           <!-- Toggle pill -->
           <button
             type="button"
-            class="md-toggle absolute top-2 right-2 z-10"
+            class="md-toggle absolute top-2 right-2"
             [class]="previewMode() ? 'md-toggle--preview' : 'md-toggle--edit'"
             (click)="togglePreview()"
             [title]="previewMode() ? 'Back to editing' : 'Preview markdown'"
