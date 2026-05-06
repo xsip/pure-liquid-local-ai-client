@@ -7,6 +7,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../client';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroExclamationTriangle, heroEyeSlash, heroEye, heroArrowRight } from '@ng-icons/heroicons/outline';
+import { BlobBackgroundDirective } from '../shared/directives/blob-background.directive';
 
 @Component({
   selector: 'app-login',
@@ -49,7 +50,13 @@ import { heroExclamationTriangle, heroEyeSlash, heroEye, heroArrowRight } from '
     ]),
   ],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, NgIconComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    NgIconComponent,
+    BlobBackgroundDirective,
+  ],
   viewProviders: [provideIcons({ heroExclamationTriangle, heroEyeSlash, heroEye, heroArrowRight })],
   template: `
     <div
@@ -57,7 +64,10 @@ import { heroExclamationTriangle, heroEyeSlash, heroEye, heroArrowRight } from '
       @pageAnim
     >
       <!-- Atmospheric background -->
-      <div class="absolute inset-0 bg-dot-grid opacity-40 pointer-events-none"></div>
+      <div
+        appBlobBackground
+        class="absolute inset-0 bg-dot-grid opacity-40 pointer-events-none"
+      ></div>
       <div
         class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full pointer-events-none"
         style="background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%); filter: blur(60px); opacity: 0.35;"
@@ -75,8 +85,7 @@ import { heroExclamationTriangle, heroEyeSlash, heroEye, heroArrowRight } from '
               class="w-14 h-14 rounded-2xl flex items-center justify-center animate-float"
               style="box-shadow: 0 8px 32px var(--color-accent-glow);"
             >
-              <img src="logo-cropped.png" class="w-full h-full text-white"  alt="logo" />
-
+              <img src="logo-cropped.png" class="w-full h-full text-white" alt="logo" />
             </div>
             <div
               class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-success-muted animate-pulse"
@@ -174,7 +183,10 @@ import { heroExclamationTriangle, heroEyeSlash, heroEye, heroArrowRight } from '
                   <span>{{ 'login.signingIn' | translate }}</span>
                 } @else {
                   <span>{{ 'login.submit' | translate }}</span>
-                  <ng-icon name="heroArrowRight" class="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                  <ng-icon
+                    name="heroArrowRight"
+                    class="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+                  />
                 }
               </button>
             </div>
