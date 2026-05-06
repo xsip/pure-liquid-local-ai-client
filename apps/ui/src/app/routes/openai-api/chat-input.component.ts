@@ -7,7 +7,8 @@ import {
   output,
   signal,
   ViewChild,
-  AfterViewChecked, inject,
+  AfterViewChecked,
+  inject,
 } from '@angular/core';
 import Prism from 'prismjs';
 import { CommonModule } from '@angular/common';
@@ -26,7 +27,13 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 import { MarkdownPipe } from '../lm-studio-api/markdown.pipe';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroPencilSquare, heroEye, heroLink, heroDocument, heroXMark } from '@ng-icons/heroicons/outline';
+import {
+  heroPencilSquare,
+  heroEye,
+  heroLink,
+  heroDocument,
+  heroXMark,
+} from '@ng-icons/heroicons/outline';
 import { ChatService } from './chat.service';
 import { Observable, of, Subject, switchMap, take } from 'rxjs';
 
@@ -388,8 +395,19 @@ export class OpenAiChatInputComponent implements AfterViewInit, AfterViewChecked
     if (!files?.length) return;
 
     const file = files[0];
-
-      (this.chatService.currentChatId() ? of(this.chatService.currentChatId()!) : this.newChatIdProvider()())
+    if (['jpeg', 'jpg', 'png', 'svg'].includes(file.name.split('.')[1])) {
+      readFilesAsDataUrls(files).then((newFiles) => {
+        this.appendedFiles.update((existing) => {
+          const merged = mergeFiles(existing, newFiles);
+          this.appendedFilesChanged.emit(merged);
+          return merged;
+        });
+      });
+    } else {
+      (this.chatService.currentChatId()
+        ? of(this.chatService.currentChatId()!)
+        : this.newChatIdProvider()()
+      )
         .pipe(
           take(1),
           switchMap((chatId) => this.chatMetadataService.uploadFile(chatId, file)),
@@ -410,19 +428,12 @@ export class OpenAiChatInputComponent implements AfterViewInit, AfterViewChecked
           });
           console.log(res);
         });
-      return;
+    }
   }
 
   /*
 
-          readFilesAsDataUrls(files).then((newFiles) => {
-            this.appendedFiles.update((existing) => {
-              const merged = mergeFiles(existing, newFiles);
-              this.appendedFilesChanged.emit(merged);
-              return merged;
-            });
-            input.value = '';
-          });
+
    */
 
   removeFile(index: number): void {

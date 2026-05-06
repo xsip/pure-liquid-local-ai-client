@@ -123,19 +123,16 @@ export class ChatService {
     this.streaming.set(true);
     this.mcpTracking.clear();
 
-    /*for (const f of appendedFiles ?? []) {
+    for (const f of appendedFiles ?? []) {
       this.chatMessages.update((msgs) => [
         ...msgs,
         f.image_url
-          ? { role: 'user', image: f.image_url, date: new Date() }
-          : {
-              role: 'user',
-              text: `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`,
-            },
-      ]);
-    }*/
+          ? { role: 'user', image: f.image_url, date: new Date() } as ChatMessage
+          : undefined
+      ].filter(f => !!f));
+    }
 
-    this.chatMessages.update((msgs) => [...msgs, { role: 'user', text: (appendedFiles?.map(f => `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`).join('\n') ?? '') +  (appendedFiles?.length ? '  \n' : '') + input, date: new Date() }]);
+    this.chatMessages.update((msgs) => [...msgs, { role: 'user', text: (appendedFiles?.map(f => f.type === 'input_image' ? undefined : `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`).filter(f => !!f).join('\n') ?? '') +  (appendedFiles?.length ? '  \n' : '') + input, date: new Date() }]);
 
     this.streamService.reset();
     this.sub?.unsubscribe();
@@ -387,23 +384,38 @@ export class ChatService {
       {
         model: selectedModelId,
         input: [
-          ...((appendedFiles) ?? []).map((f) => {
-            return {
-              role: 'system',
-              content: [
-                {
-                  type: 'input_text',
-                  text: `Get file contents by passing "${f.id}" to the "get-content-from-file-ids" tool.`,
-                },
-              ],
-            };
-          }) as any,
+          ...((appendedFiles ?? [])
+            .map((f) => {
+              return f.id
+                ? {
+                    role: 'system',
+                    content: [
+                      {
+                        type: 'input_text',
+                        text: `Get file contents by passing "${f.id}" to the "get-content-from-file-ids" tool.`,
+                      },
+                    ],
+                  }
+                : undefined;
+            })
+            .filter((f) => !!f) as any),
           {
             role: 'user',
             content: [
+              ...((appendedFiles?.filter(f => f.type === 'input_image')) ?? []),
               {
                 type: 'input_text',
-                text: (appendedFiles?.map(f => `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`).join('\n') ?? '') +  (appendedFiles?.length ? '  \n' : '') + input,
+                text:
+                  (appendedFiles
+                    ?.map((f) =>
+                      f.type === 'input_image'
+                        ? undefined
+                        : `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`,
+                    )
+                    .filter((f) => !!f)
+                    .join('\n') ?? '') +
+                  (appendedFiles?.length ? '  \n' : '') +
+                  input,
               },
             ],
           },
