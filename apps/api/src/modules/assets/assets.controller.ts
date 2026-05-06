@@ -180,6 +180,7 @@ export class AssetsController {
       file.originalname,
       file.buffer,
       file.mimetype,
+      true,
     );
   }
 }

@@ -232,9 +232,7 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
                   >
                     <ng-icon name="heroPaperClip" class="w-3.5 h-3.5 shrink-0 opacity-60" />
                     {{ 'sidebar.generatedFiles' | translate }}
-                    <ui-badge [variant]="'accent'"
-                      >{{ chat.generatedAssets?.length ?? 0 }}
-                    </ui-badge>
+                    <ui-badge [variant]="'accent'">{{ getAssetsLength(chat) }} </ui-badge>
                   </button>
                   <div class="border-t border-border-subtle mx-2 my-1"></div>
 
@@ -246,7 +244,7 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
                   >
                     <ng-icon name="heroPaperClip" class="w-3.5 h-3.5 shrink-0 opacity-60" />
                     {{ 'sidebar.uploadedFiles' | translate }}
-                    <ui-badge [variant]="'accent'">{{ chat.userAssets?.length ?? 0 }} </ui-badge>
+                    <ui-badge [variant]="'accent'">{{ getUserFilesLength(chat) }} </ui-badge>
                   </button>
                 }
               </button>
@@ -473,6 +471,13 @@ export class ChatSidebarComponent {
     this.closeCtxMenu();
     this.generatedFilesModelType.set(type);
     this.generatedFilesModalContent.set(chat);
+  }
+
+  getAssetsLength(chat: ChatMetadataDto) {
+    return chat.generatedAssets?.filter((asset) => asset.isVisible).length ?? 0;
+  }
+  getUserFilesLength(chat: ChatMetadataDto) {
+    return chat.userAssets?.filter((asset) => asset.isVisible).length ?? 0;
   }
 
   openSettings(chat: ChatMetadataDto): void {

@@ -10,15 +10,27 @@ export class AssetsService {
     private readonly imageBlobModel: Model<ImageBlobDocument>,
   ) {}
 
+  async setAssetVisibility(
+    userId: string,
+    chatId: string,
+    filename: string,
+    isVisible: boolean,
+  ): Promise<void> {
+    const blob = await this.imageBlobModel
+      .findOne({ userId, chatId, filename })
+      .exec();
+    if (!blob) return;
+    blob.isVisible = isVisible;
+
+    await blob.save();
+  }
 
   async deleteAsset(
     userId: string,
     chatId: string,
-    filename: string
+    filename: string,
   ): Promise<DeleteResult> {
-    return this.imageBlobModel
-      .deleteOne({ userId, chatId, filename })
-      .exec();
+    return this.imageBlobModel.deleteOne({ userId, chatId, filename }).exec();
   }
   async getAsset(
     userId: string,
@@ -52,6 +64,7 @@ export class AssetsService {
     originalFilename: string,
     data: Buffer,
     mimeType: string,
+    isVisible: boolean,
     thumbnailData?: Buffer,
   ) {
     const ext = originalFilename.split('.').pop()?.toLowerCase() ?? 'bin';
@@ -62,6 +75,7 @@ export class AssetsService {
       chatId,
       filename,
       mimeType,
+      isVisible,
       role,
       displayName: originalFilename,
       data,

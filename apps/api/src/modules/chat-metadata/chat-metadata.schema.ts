@@ -47,6 +47,9 @@ export class GeneratedAsset {
 
   @Prop()
   mimeType?: string;
+
+  @Prop()
+  isVisible: boolean;
 }
 @Schema({ collection: 'chat_metadata', timestamps: true })
 export class ChatMetadata {

@@ -137,11 +137,17 @@ export class ApiTools {
         zip.file(file.displayName, file.data);
       }
 
-      await this.assetsService.deleteAsset(user._id + '', chatId, fileId);
-      await this.chatMetaDataService.removeAssetFromChat(
+      await this.assetsService.setAssetVisibility(
+        user._id + '',
+        chatId,
+        fileId,
+        false,
+      );
+      await this.chatMetaDataService.setChatAssetVisibility(
         user._id!,
         chatId,
         file._id,
+        false,
       );
       this.toolsHelperService.emitApiEvent(request, ApiEvent.MCP_PROGRESS, {
         progress: Math.round(((i + 1) / fileIds.length) * 90), // reserve last 10% for upload
@@ -169,6 +175,7 @@ export class ApiTools {
         zipFileName,
         buffer,
         ZIP_MIME_TYPE,
+        true,
       );
 
     const assetUrl = `api/assets/${chatId}/${uploadedFileName}`;
@@ -181,6 +188,7 @@ export class ApiTools {
       url: assetUrl,
       filename: zipFileName,
       refId: id,
+      isVisible: true,
       mimeType: ZIP_MIME_TYPE,
       sizeKb,
       type: GeneratedAssetType.FILE,
@@ -238,6 +246,7 @@ export class ApiTools {
         filename,
         buffer,
         mimeType,
+        true,
       );
 
     const assetUrl = `api/assets/${chatId}/${uploadedFileName}`;
@@ -251,6 +260,7 @@ export class ApiTools {
       filename,
       refId: id,
       mimeType,
+      isVisible: true,
       sizeKb,
       type: GeneratedAssetType.FILE, // was IMAGE — change if you have a FILE enum value
     });
@@ -489,6 +499,7 @@ export class ApiTools {
         fileName,
         buffer,
         mimeType,
+        true,
         thumbnailBuffer,
       );
 
@@ -496,6 +507,7 @@ export class ApiTools {
       url: `api/assets/${chatId}/${uploadedFileName}`,
       thumbnail: `api/assets/${chatId}/${uploadedFileName}?thumbnail=true`,
       filename: uploadedFileName,
+      isVisible: true,
       refId: id,
       type: GeneratedAssetType.IMAGE,
     });

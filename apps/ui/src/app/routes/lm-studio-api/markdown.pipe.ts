@@ -247,7 +247,7 @@ export class CodeBlockComponent {
 
 // ── helpers (add near FILE_TYPE_MAP or top of file) ──────────────────────────
 const IMAGE_EXTS  = new Set(['png','jpg','jpeg','gif','webp','svg','bmp','ico','avif','tiff']);
-const PREVIEWABLE = new Set(['html', 'ts', 'tsx', 'js','txt', 'py', ...IMAGE_EXTS]);
+const PREVIEWABLE = new Set(['html', 'ts', 'tsx', 'js','txt', 'py', 'json', ...IMAGE_EXTS]);
 export const EXT_TO_PRISM_LANG: Record<string, string> = {
   // Web
   html: 'markup',

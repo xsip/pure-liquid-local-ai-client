@@ -106,6 +106,23 @@ export class ChatMetadataService {
     );
     await doc.save();
   }
+  async setChatAssetVisibility(
+    userId: Types.ObjectId,
+    id: string,
+    refId: Types.ObjectId,
+    isVisible: boolean,
+  ): Promise<void> {
+    const doc = await this.metaModel.findById(id).exec();
+    if (!doc) throw new NotFoundException(`ChatMetadata ${id} not found`);
+    this.assertOwner(userId, doc);
+
+    doc.generatedAssets = doc.generatedAssets?.map((asset) => {
+      if (asset.refId + '' === refId + '') asset.isVisible = isVisible;
+      return asset;
+    });
+
+    await doc.save();
+  }
 
   async addAssetToChat(
     userId: Types.ObjectId | string,
@@ -225,6 +242,7 @@ export class ChatMetadataService {
       chatId,
       filename,
       role,
+      isVisible: true,
       mimeType,
       displayName: originalFilename,
       data,
@@ -244,6 +262,7 @@ export class ChatMetadataService {
         refId: res.id,
         mimeType: mimeType,
         sizeKb,
+        isVisible: true,
         type: GeneratedAssetType.FILE,
       },
       role,

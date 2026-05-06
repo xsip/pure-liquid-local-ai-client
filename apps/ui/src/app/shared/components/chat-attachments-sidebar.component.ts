@@ -266,9 +266,9 @@ export class ChatAttachmentsSidebarComponent implements OnInit, OnDestroy {
   }
 
   get getAssets() {
-    return this.assetsType() === 'generated'
+    return (this.assetsType() === 'generated'
       ? this.chat()?.generatedAssets
-      : this.chat()?.userAssets;
+      : this.chat()?.userAssets)?.filter(asset => asset.isVisible);
   }
 
   fileTypeConfig(filename?: string | null): FileTypeConfig {

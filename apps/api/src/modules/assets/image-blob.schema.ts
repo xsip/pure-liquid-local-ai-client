@@ -38,9 +38,12 @@ export class ImageBlob {
 
   @Prop({
     required: true,
-    enum: Object.values(AssetRole)
+    enum: Object.values(AssetRole),
   })
   role: AssetRole;
+
+  @Prop({ required: true, type: Boolean })
+  isVisible?: boolean;
 }
 
 export const ImageBlobSchema = SchemaFactory.createForClass(ImageBlob);
