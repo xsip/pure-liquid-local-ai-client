@@ -19,6 +19,7 @@ import * as CryptoJS from 'crypto-js';
 export interface ChatMessage {
   role: 'user' | 'ai' | 'error' | 'info' | 'tool_call' | 'reasoning' | 'mcp_list_tools';
   text: string;
+  image?: string;
   date?: Date;
   stats?: string;
   streaming?: boolean;
@@ -102,6 +103,7 @@ export class ChatCompletionsService {
     onChatListRefresh: () => void,
     newChatOptions?: {
       name?: string;
+      letAiDecideChatName?: boolean;
       useCrypto?: boolean;
       cryptoKey?: string;
       openAiEndpointPreference?: CreateChatMetadataDto.OpenAiEndpointPreferenceEnum;
@@ -114,8 +116,33 @@ export class ChatCompletionsService {
     this.form.reset();
     this.streaming.set(true);
 
-    this.chatMessages.update((msgs) => [...msgs, { role: 'user', text: input, date: new Date() }]);
-    this.chatMessages.update((msgs) => [...msgs, { role: 'ai', text: '', streaming: true }]);
+    for (const f of appendedFiles ?? []) {
+      if (f.image_url) {
+        this.chatMessages.update((msgs) => [
+          ...msgs,
+          { role: 'user', text: '', image: f.image_url, date: new Date() },
+        ]);
+      }
+    }
+
+    this.chatMessages.update((msgs) => [
+      ...msgs,
+      {
+        role: 'user',
+        text:
+          (appendedFiles
+            ?.map((f) =>
+              f.type === 'input_image'
+                ? undefined
+                : `::file[${f.filename}](${f.assetUrl}){size=${f.sizeKb} type=${f.filename.split('.')[1]}}`,
+            )
+            .filter((f) => !!f)
+            .join('\n') ?? '') +
+          (appendedFiles?.length ? '  \n' : '') +
+          input,
+        date: new Date(),
+      },
+    ]);
 
     this.streamService.reset();
     this.sub?.unsubscribe();
@@ -194,13 +221,32 @@ export class ChatCompletionsService {
       error: () => this.streaming.set(false),
     });
 
-    // Text deltas arrive through the dedicated subject
+    // Reasoning deltas — lazily create the bubble on first delta.
+    this.streamService.reasoningDelta$.subscribe((chunk) => {
+      this.chatMessages.update((msgs) => {
+        const idx = this.lastIndexWhere(msgs, (m) => m.role === 'reasoning' && !!m.streaming);
+        if (idx !== -1) {
+          const copy = [...msgs];
+          copy[idx] = { ...copy[idx], text: copy[idx].text + chunk };
+          return copy;
+        }
+        return [
+          ...msgs,
+          { role: 'reasoning', text: chunk, streaming: true, collapsed: false, date: new Date() },
+        ];
+      });
+    });
+
+    // Text deltas — lazily create the ai bubble on first delta.
     this.streamService.messageDelta$.subscribe((chunk) => {
       this.chatMessages.update((msgs) => {
-        const copy = [...msgs];
-        const idx = this.lastIndexWhere(copy, (m) => m.role === 'ai' && !!m.streaming);
-        if (idx !== -1) copy[idx] = { ...copy[idx], text: copy[idx].text + chunk };
-        return copy;
+        const idx = this.lastIndexWhere(msgs, (m) => m.role === 'ai' && !!m.streaming);
+        if (idx !== -1) {
+          const copy = [...msgs];
+          copy[idx] = { ...copy[idx], text: copy[idx].text + chunk };
+          return copy;
+        }
+        return [...msgs, { role: 'ai', text: chunk, streaming: true, date: new Date() }];
       });
     });
 
@@ -208,6 +254,9 @@ export class ChatCompletionsService {
       this.chatMessages.update((msgs) =>
         msgs.map((m) => {
           if (m.role === 'ai' && m.streaming) return { ...m, streaming: false };
+          if (m.role === 'reasoning' && m.streaming) {
+            return { ...m, streaming: false, collapsed: true };
+          }
           if (m.role === 'tool_call' && m.streaming) {
             return { ...m, streaming: false, collapsed: true };
           }
@@ -230,14 +279,28 @@ export class ChatCompletionsService {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', text: input }],
+            content: [...this.buildAttachmentParts(appendedFiles), { type: 'text', text: input }],
           },
         ],
+        reasoning_effort: reasoning as any,
         stream: true,
       },
       this.currentChatId() ?? undefined,
       this.currentChatId() ? undefined : newChatOptions,
     );
+  }
+
+  /** Converts appended files into Chat Completions content parts. Images go through
+   * as `image_url` parts; other files are referenced by URL since most local models
+   * don't support arbitrary file content parts over Chat Completions. */
+  private buildAttachmentParts(appendedFiles: AppendedFile[] | undefined): any[] {
+    if (!appendedFiles?.length) return [];
+    return appendedFiles.map((file) => {
+      if (file.type === 'input_image' && file.image_url) {
+        return { type: 'image_url', image_url: { url: file.image_url } };
+      }
+      return { type: 'text', text: `[Attached file: ${file.filename}] (${file.assetUrl ?? ''})` };
+    });
   }
 
   resend(

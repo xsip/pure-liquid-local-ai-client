@@ -196,6 +196,32 @@ export class OpenAiService {
     return title;
   }
 
+  async getChatTitleDependingOnContextCompletions(
+    userMessage: string | undefined,
+    model: string | undefined,
+  ): Promise<string | undefined> {
+    if (!userMessage) return undefined;
+    if (!model) return undefined;
+
+    try {
+      const completion = await this.openAi.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: `The user says: "${userMessage}".
+      Dont answer to that, only give me ONE chat title name matching the context above with a max char length of 70`,
+          },
+        ],
+        stream: false,
+      });
+      return completion.choices?.[0]?.message?.content?.trim() || undefined;
+    } catch (error: any) {
+      this.logger.error(`Failed to generate chat title: ${error.message}`);
+      return undefined;
+    }
+  }
+
   async chatStream(
     userId: Types.ObjectId,
     dto: ResponseCreateParamsNonStreamingDto | ResponseCreateParamsStreamingDto,
@@ -437,6 +463,7 @@ The final response must be a direct answer to the decrypted message, not a repet
       useCrypto?: boolean;
       cryptoKey?: string;
       chatName?: string;
+      letAiDecideChatName?: boolean;
     },
   ): Promise<void> {
     const requestId = crypto
@@ -451,6 +478,28 @@ The final response must be a direct answer to the decrypted message, not a repet
 
     const isNewChat = !internalChatId;
     const chatId = internalChatId ?? this.generateChatId();
+
+    if (isNewChat && newChatConfig?.letAiDecideChatName) {
+      const firstUserMessage = (dto.messages ?? []).find(
+        (m: any) => m.role === 'user',
+      ) as any;
+      const userText =
+        typeof firstUserMessage?.content === 'string'
+          ? firstUserMessage.content
+          : Array.isArray(firstUserMessage?.content)
+            ? firstUserMessage.content
+                .map((part: any) =>
+                  typeof part === 'string' ? part : (part?.text ?? ''),
+                )
+                .filter(Boolean)
+                .join('\n')
+            : undefined;
+
+      newChatConfig.chatName = await this.getChatTitleDependingOnContextCompletions(
+        userText,
+        dto.model,
+      );
+    }
 
     let resolvedChatMetaId: string | undefined = internalChatId;
     if (isNewChat && !resolvedChatMetaId) {
@@ -540,6 +589,11 @@ The final response must be a direct answer to the decrypted message, not a repet
 
     const MAX_TOOL_ITERATIONS = 8;
     let totalTokensUsed = 0;
+    const reasoningEffort =
+      dto.reasoning_effort ??
+      (chatMeta.reasoningMode && chatMeta.reasoningMode !== 'off'
+        ? (chatMeta.reasoningMode as any)
+        : undefined);
 
     try {
       for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
@@ -549,6 +603,7 @@ The final response must be a direct answer to the decrypted message, not a repet
           tools: tools.length ? (tools as any) : undefined,
           stream: true,
           stream_options: { include_usage: true },
+          reasoning_effort: reasoningEffort,
         } as any)) as any as Stream<OpenAI.ChatCompletionChunk>;
 
         let assembledContent = '';

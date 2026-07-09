@@ -416,6 +416,7 @@ export class OpenaiController {
       cryptoKey: string;
       internalChatId: string;
       openAiEndpointPreference: OpenAiEndpointPreference;
+      letAiDecideChatName?: boolean;
     },
   ): Promise<void> {
     const userId = (user as any)._id as Types.ObjectId;
@@ -450,7 +451,12 @@ export class OpenaiController {
       res,
       token,
       query?.internalChatId,
-      query as any,
+      {
+        ...query,
+        letAiDecideChatName:
+          (query?.letAiDecideChatName as unknown) === 'true' ||
+          query?.letAiDecideChatName === true,
+      } as any,
     );
     // ───────────────────────────────────────────────────────────────────────
   }

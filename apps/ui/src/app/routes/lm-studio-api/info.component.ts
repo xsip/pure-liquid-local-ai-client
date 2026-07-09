@@ -57,13 +57,16 @@ import { heroArrowPath, heroUser, heroChartBar, heroComputerDesktop } from '@ng-
       <div class="flex items-center justify-between" @rowAnim>
         <span class="text-sm font-semibold text-text-primary">{{ 'info.client' | translate }}</span>
         <div class="flex items-center gap-1">
-          <a
-            routerLink="/chat-lm-studio"
+          <!--
+          routerLink="/chat-lm-studio"
             routerLinkActive="!border-accent !text-accent !bg-accent-subtle"
             [routerLinkActiveOptions]="{ exact: false }"
-            class="px-2.5 py-1 text-[11px] rounded-lg font-medium border border-border-default text-text-secondary hover:border-accent/50 hover:text-accent hover:bg-accent-subtle active:scale-95 transition-all duration-150"
-            >{{ 'info.lmStudio' | translate }}</a
+          !-->
+          <p
+            class="px-2.5 py-1 text-[11px] rounded-lg font-medium border border-border-default text-text-secondary  cursor-not-allowed  transition-all duration-150"
           >
+            {{ 'info.lmStudio' | translate }}
+          </p>
           <a
             routerLink="/chat-openai"
             routerLinkActive="!border-accent !text-accent !bg-accent-subtle"
@@ -78,7 +81,11 @@ import { heroArrowPath, heroUser, heroChartBar, heroComputerDesktop } from '@ng-
       <div class="flex items-center justify-between" @rowAnim>
         <span class="text-sm font-semibold text-text-primary">{{ 'info.info' | translate }}</span>
         <ui-button variant="secondary" size="xs" [disabled]="loading()" (clicked)="refresh()">
-          <ng-icon name="heroArrowPath" class="w-3 h-3 transition-transform" [class.animate-spin]="loading()" />
+          <ng-icon
+            name="heroArrowPath"
+            class="w-3 h-3 transition-transform"
+            [class.animate-spin]="loading()"
+          />
           <span>{{ 'info.refresh' | translate }}</span>
         </ui-button>
       </div>

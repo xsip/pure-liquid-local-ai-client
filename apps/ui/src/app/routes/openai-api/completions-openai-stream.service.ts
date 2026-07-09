@@ -71,6 +71,7 @@ export class OpenAiStreamService {
     chatId?: string,
     newChatOptions?: {
       name?: string;
+      letAiDecideChatName?: boolean;
       useCrypto?: boolean;
       cryptoKey?: string;
       openAiEndpointPreference?: CreateChatMetadataDto.OpenAiEndpointPreferenceEnum;
@@ -82,6 +83,8 @@ export class OpenAiStreamService {
       if (chatId) params.set('internalChatId', chatId);
       if (!chatId && newChatOptions) {
         if (newChatOptions.name) params.set('chatName', newChatOptions.name);
+        if (newChatOptions.letAiDecideChatName != null)
+          params.set('letAiDecideChatName', String(newChatOptions.letAiDecideChatName));
         if (newChatOptions.useCrypto != null)
           params.set('useCrypto', String(newChatOptions.useCrypto));
         if (newChatOptions.cryptoKey) params.set('cryptoKey', newChatOptions.cryptoKey);
@@ -210,7 +213,12 @@ export class OpenAiStreamService {
       case 'chat.completion.chunk': {
         const chunk = event as any as ChatCompletionChunkDto;
         const choice = chunk.choices?.[0] as any;
-        const delta = choice?.delta as { content?: string } | undefined;
+        const delta = choice?.delta as
+          | { content?: string; reasoning_content?: string }
+          | undefined;
+        if (delta?.reasoning_content) {
+          this._reasoningDelta$.next(delta.reasoning_content);
+        }
         if (delta?.content) {
           this._messageDelta$.next(delta.content);
         }

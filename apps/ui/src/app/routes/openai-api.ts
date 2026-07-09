@@ -302,6 +302,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
                         <ui-button
                           class="flex-1"
                           variant="secondary"
+                          [disabled]="true"
                           [active]="newChatEndpointPreference() === 'RESPONSES'"
                           (clicked)="selectNewChatEndpointPreference('RESPONSES')"
                           >{{ 'toolbar.responsesApi' | translate }}</ui-button
@@ -474,7 +475,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
   readonly chatCompletionsService = inject(ChatCompletionsService);
   readonly modelService = inject(OpenAiModelService);
   /** Whether the currently open/new chat uses the Chat Completions API instead of Responses. */
-  readonly useCompletions = signal(false);
+  readonly useCompletions = signal(true);
   /** Common facade over whichever backend service is active for the current chat. */
   get activeChat(): ChatService | ChatCompletionsService {
     return this.useCompletions() ? this.chatCompletionsService : this.chatService;
@@ -499,7 +500,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
 
   // ── New-chat options ───────────────────────────────────────────────────────
   readonly newChatEndpointPreference =
-    signal<CreateChatMetadataDto.OpenAiEndpointPreferenceEnum>('RESPONSES');
+    signal<CreateChatMetadataDto.OpenAiEndpointPreferenceEnum>('COMPLETION');
   readonly newChatUseCrypto = signal(false);
   readonly newChatUseInvoke = signal(true);
   readonly invokeAiModelPreference = signal<InvokeAiModelToUseEnum>('Dreamshaper 8');
@@ -785,6 +786,13 @@ export class OpenAiApi implements OnDestroy, OnInit {
       const messages: ChatMessage[] = [];
       for (const m of rawMessages) {
         if (m.role === 'user') {
+          if (Array.isArray(m.content)) {
+            for (const part of m.content) {
+              if (part?.type === 'image_url' && part.image_url?.url) {
+                messages.push({ role: 'user', text: '', image: part.image_url.url, date });
+              }
+            }
+          }
           const text = this.extractCompletionsMessageText(m.content);
           if (text) messages.push({ role: 'user', text, date });
         } else if (m.role === 'assistant') {
@@ -870,10 +878,10 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.chatService.currentChatId.set(null);
     this.chatCompletionsService.chatMessages.set([]);
     this.chatCompletionsService.currentChatId.set(null);
-    this.useCompletions.set(false);
+    this.useCompletions.set(true);
     this.router.navigate(['/chat-openai']);
     // Reset new-chat options to defaults
-    this.newChatEndpointPreference.set('RESPONSES');
+    this.newChatEndpointPreference.set('COMPLETION');
     this.newChatUseCrypto.set(false);
     this.newChatUseCryptoModel = false;
     this.newChatCryptoKey = '';
@@ -925,6 +933,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         () => this.loadChatList(),
         {
           name: this.resolvedChatName(),
+          letAiDecideChatName: this.newChatNameMode() === 'ai',
           useCrypto: this.newChatUseCrypto(),
           cryptoKey: this.newChatCryptoKey || undefined,
           openAiEndpointPreference: this.newChatEndpointPreference(),
