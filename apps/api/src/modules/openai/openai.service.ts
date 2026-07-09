@@ -258,7 +258,7 @@ export class OpenAiService {
       tools: [
         {
           type: 'mcp',
-          server_label: 'lm-studio-extender-toolbox',
+          server_label: 'liquid-local-ai-client-toolbox',
           server_url: this.selfMcpUrl,
           headers: {
             authorization: `Bearer ${token}`,

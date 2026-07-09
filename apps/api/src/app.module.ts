@@ -35,7 +35,7 @@ import { ToolsHelperService } from './tools/tools-helper.service';
 
     AssetsModule,
     McpModule.forRoot({
-      name: 'lm-studio-extender-toolbox',
+      name: 'liquid-local-ai-client-toolbox',
       version: '1.0.0',
       apiPrefix: 'tools',
       transport: [McpTransportType.STREAMABLE_HTTP, McpTransportType.SSE],

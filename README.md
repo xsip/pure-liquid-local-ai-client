@@ -1,11 +1,11 @@
-# <img src="https://raw.githubusercontent.com/xsip/lm-studio-extender/refs/heads/main/apps/ui/public/logo-cropped.png" alt="Logo" width="30"/> LM Studio Extender | [Preview on youtube](https://www.youtube.com/watch?v=_UhKke10JzY)  
+# <img src="https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/logo-cropped.png" alt="Logo" width="30"/> Liquid Local AI Client | [Preview on youtube](https://www.youtube.com/watch?v=_UhKke10JzY)  
 
 A full-stack AI chat client that connects to any OpenAI-compatible local inference server (LM Studio, Ollama, llama.cpp, vLLM, ...) via the standard `/v1/chat/completions` endpoint. Built with Angular, NestJS, and MongoDB, with first-class MCP (Model Context Protocol) tool support, AI image generation via [InvokeAI](https://invoke-ai.github.io/InvokeAI/), image upload into chat, and optional end-to-end AES message encryption.
 
 > **⚠️ Breaking change:** LM Studio's native `/api/v1/chat` API and the OpenAI-compatible `/v1/responses/create` (Responses API) endpoint are **disabled**. See [Chat Completions API (current default)](#chat-completions-api-current-default) below for why and what replaced them.
 
 ---
-![Header](https://raw.githubusercontent.com/xsip/lm-studio-extender/refs/heads/main/img_3.png)
+![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/img_3.png)
 ---
 
 ## Table of Contents
@@ -298,7 +298,7 @@ Then log in at `POST /auth/login` to receive a JWT.
 
 ## MCP Tool Integration
 
-![Header](https://raw.githubusercontent.com/xsip/lm-studio-extender/refs/heads/main/apps/ui/public/mcp-preview-light.png)
+![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-preview-light.png)
 
 The NestJS backend plays **both** MCP roles at once:
 

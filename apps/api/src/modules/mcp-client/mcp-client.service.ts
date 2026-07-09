@@ -46,7 +46,7 @@ export class McpClientService {
 
   private async connect(headers: McpToolHeaders): Promise<Client> {
     const client = new Client({
-      name: 'lm-studio-extender-mcp-client',
+      name: 'liquid-local-ai-client-mcp-client',
       version: '1.0.0',
     });
 
