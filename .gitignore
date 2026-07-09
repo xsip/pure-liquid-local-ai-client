@@ -1,7 +1,7 @@
 # NX
 .nx/cache
 .nx/workspace-data
-
+.claude
 # Build outputs
 dist/
 tmp/

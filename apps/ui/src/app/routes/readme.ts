@@ -13,6 +13,7 @@ import {
   heroServer,
   heroInformationCircle,
   heroExclamationTriangle,
+  heroPhoto,
 } from '@ng-icons/heroicons/outline';
 
 @Component({
@@ -30,6 +31,7 @@ import {
       heroServer,
       heroInformationCircle,
       heroExclamationTriangle,
+      heroPhoto,
     }),
   ],
   styles: [
@@ -81,23 +83,6 @@ import {
         background: linear-gradient(to bottom, var(--color-accent), transparent);
       }
 
-      .img-placeholder {
-        background: linear-gradient(
-          135deg,
-          var(--color-surface-overlay) 0%,
-          var(--color-surface-sunken) 50%,
-          var(--color-surface-overlay) 100%
-        );
-        border: 1px dashed var(--color-border-strong);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        color: var(--color-text-muted);
-        font-size: 0.75rem;
-      }
-
       .encrypt-flow-step {
         position: relative;
       }
@@ -110,6 +95,12 @@ import {
         color: var(--color-accent);
         font-size: 1.1rem;
         line-height: 1;
+      }
+
+      .arch-box {
+        border: 1px solid var(--color-border-default);
+        border-radius: 0.75rem;
+        background: var(--color-surface-raised);
       }
     `,
   ],
@@ -126,9 +117,7 @@ import {
             >
               <ng-icon name="heroCommandLine" class="w-4 h-4 text-accent" />
             </span>
-            <span class="font-semibold text-sm text-text-primary truncate"
-            >LM Studio Chat Client</span
-            >
+            <span class="font-semibold text-sm text-text-primary truncate">Liquid Local AI Client</span>
             <span
               class="hidden sm:inline-flex badge-pill bg-accent/10 text-accent-text border border-accent/20 ml-1"
             >docs</span
@@ -183,20 +172,26 @@ import {
             <span class="badge-pill bg-warn-bg text-warn-text border border-warn-border"
             >AES Encryption</span
             >
+            <span class="badge-pill bg-info-bg text-info-text border border-info-border"
+            >InvokeAI</span
+            >
           </div>
 
           <h1
             class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-text-primary mb-4 leading-tight"
           >
-            LM Studio<br />
+            Liquid Local<br />
             <span
               class="text-transparent bg-clip-text bg-gradient-to-r from-accent to-reasoning-text"
-            >Chat Client</span
+            >AI Client</span
             >
           </h1>
           <p class="text-lg sm:text-xl text-text-secondary max-w-2xl mb-8 leading-relaxed">
-            A full-stack AI chat interface for locally running LM Studio instances — with real-time
-            SSE streaming, MCP tool support, and optional end-to-end AES message encryption.
+            A full-stack AI chat client that connects to any OpenAI-compatible local inference
+            server — LM Studio, Ollama, llama.cpp, vLLM — over the standard
+            <code class="text-accent">/v1/chat/completions</code> endpoint, with client-side MCP
+            tool orchestration, AI image generation, image upload, and optional end-to-end AES
+            message encryption.
           </p>
 
           <div class="flex flex-wrap gap-3">
@@ -219,6 +214,29 @@ import {
 
       <!-- ── BODY ───────────────────────────────────────────────────────────── -->
       <div class="max-w-6xl mx-auto px-4 sm:px-8 py-12 space-y-20">
+        <!-- BREAKING CHANGE BANNER -->
+        <section>
+          <div
+            class="flex gap-3 items-start bg-warn-bg border border-warn-border rounded-xl px-5 py-4"
+          >
+            <ng-icon
+              name="heroExclamationTriangle"
+              class="w-5 h-5 text-warn-text flex-shrink-0 mt-0.5"
+            />
+            <div>
+              <p class="font-semibold text-sm text-warn-text mb-1">Breaking change</p>
+              <p class="text-xs text-warn-text leading-relaxed">
+                LM Studio's native <code class="bg-surface-overlay px-1 rounded">/api/v1/chat</code>
+                API and the OpenAI-compatible
+                <code class="bg-surface-overlay px-1 rounded">/v1/responses/create</code>
+                (Responses API) endpoint are <strong>disabled</strong>. See
+                <a href="#why-completions" class="underline">Chat Completions API</a> below for why
+                and what replaced them.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <!-- OVERVIEW IMAGE -->
         <section>
           <img class="dark:hidden block" src="chat-preview-light.png" alt="chat overview light" />
@@ -229,7 +247,12 @@ import {
         <section>
           <h2 class="text-2xl font-bold text-text-primary mb-2">Overview</h2>
           <p class="text-text-secondary mb-6">
-            This Nx monorepo contains two applications that work together as a single product.
+            This Nx monorepo hosts two applications that act as a single product: an authenticated
+            proxy in front of your local inference server, and the Angular chat interface on top
+            of it. Every chat session is persisted in MongoDB, token usage is tracked per user, and
+            the backend runs its own <strong>MCP client</strong> that calls tools on-demand as the
+            model requests them — rather than relying on the inference server to orchestrate tool
+            calls itself.
           </p>
           <div class="grid sm:grid-cols-2 gap-4">
             <div class="card-hover bg-surface-raised border border-border-default rounded-xl p-6">
@@ -245,8 +268,8 @@ import {
                 </div>
               </div>
               <p class="text-sm text-text-secondary">
-                Angular 21 single-page application with real-time SSE streaming, two chat routes (LM
-                Studio API &amp; OpenAI Responses), and a Markdown-rendering message view.
+                Angular 21 single-page application with real-time SSE streaming, image
+                upload/attachment, and a Markdown-rendering message view shared across chat routes.
               </p>
             </div>
 
@@ -263,40 +286,100 @@ import {
                 </div>
               </div>
               <p class="text-sm text-text-secondary">
-                NestJS 11 backend acting as an authenticated LM Studio proxy, MCP server, and
-                MongoDB persistence layer with JWT auth and token rate limiting.
+                NestJS 11 backend acting as an authenticated inference-server proxy, MCP client
+                <em>and</em> server, InvokeAI image-gen integration, and MongoDB persistence layer
+                with JWT auth and token rate limiting.
               </p>
             </div>
           </div>
+        </section>
+
+        <!-- WHY CHAT COMPLETIONS -->
+        <section id="why-completions">
+          <h2 class="text-2xl font-bold text-text-primary mb-2">
+            Chat Completions API <span class="text-text-muted text-base font-normal">(current default)</span>
+          </h2>
+          <p class="text-text-secondary mb-4">
+            LM Studio disabled connecting to localhost MCP servers, which broke this project's
+            original architecture: the Responses API worked by handing LM Studio a
+            <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+            >type: 'mcp'</code
+            >
+            tool pointing at this backend's MCP server, relying on LM Studio itself to connect,
+            list tools, call them, and feed results back to the model. With per-request localhost
+            MCP connections disabled, that flow no longer works — and it was never portable to
+            other backends anyway, since MCP tool passthrough is a Responses-API-only convenience.
+          </p>
+          <p class="text-text-secondary mb-6">
+            The fix: stop depending on the inference server for MCP orchestration entirely, and do
+            it ourselves. The backend now runs its own MCP client
+            (<code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+            >apps/api/src/modules/mcp-client</code
+            >) that connects directly to the MCP tool server, lists available tools, and
+            translates them into plain OpenAI <strong>function-tool</strong> definitions. Chat
+            requests go out over the standard Chat Completions API
+            (<code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+            >/v1/chat/completions</code
+            >) with those function tools attached. When the model returns
+            <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+            >tool_calls</code
+            >, the backend executes them itself via the MCP client and loops back into the model
+            until it produces a final answer.
+          </p>
+          <div class="grid sm:grid-cols-3 gap-3">
+            <div class="bg-error-bg border border-error-border rounded-lg p-4">
+              <p class="text-error-text text-xs uppercase tracking-wider font-semibold mb-1">
+                Disabled
+              </p>
+              <p class="font-medium text-sm text-text-primary">/api/v1/chat</p>
+              <p class="text-text-muted text-xs mt-1">LM Studio native API</p>
+            </div>
+            <div class="bg-error-bg border border-error-border rounded-lg p-4">
+              <p class="text-error-text text-xs uppercase tracking-wider font-semibold mb-1">
+                Disabled
+              </p>
+              <p class="font-medium text-sm text-text-primary">/v1/responses/create</p>
+              <p class="text-text-muted text-xs mt-1">OpenAI Responses API</p>
+            </div>
+            <div class="bg-success-bg border border-success-border rounded-lg p-4">
+              <p class="text-success-text text-xs uppercase tracking-wider font-semibold mb-1">
+                Active — only supported path
+              </p>
+              <p class="font-medium text-sm text-text-primary">/v1/chat/completions</p>
+              <p class="text-text-muted text-xs mt-1">Works with any OpenAI-compatible backend</p>
+            </div>
+          </div>
+          <p class="text-xs text-text-muted mt-4">
+            Known limitation: file attachments are text-only-friendly (images are inlined as
+            vision content; other file types are referenced by ID and fetched on demand via
+            <code class="text-accent">get-content-from-file-ids</code>). Reasoning-effort and
+            AI-decided chat naming are still supported, matching the old Responses-API experience.
+          </p>
         </section>
 
         <!-- ARCHITECTURE -->
         <section id="architecture">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Architecture</h2>
           <p class="text-text-secondary mb-6">
-            During inference, LM Studio calls back into the NestJS MCP server with the user's JWT
-            forwarded in
-            <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-accent"
-            >Authorization</code
-            >, giving MCP tools full access to the authenticated user's context.
+            Unlike the old Responses-API flow — where LM Studio itself connected to the MCP server
+            mid-inference — the NestJS backend now acts as the MCP client itself: it lists tools
+            from its own MCP server, attaches them to the Chat Completions request as plain
+            function tools, and executes any <code class="text-accent">tool_calls</code> the model
+            returns before looping back into the model. The inference server never talks to MCP
+            directly, so this works with any backend that supports standard OpenAI function
+            calling.
           </p>
-          <!--<div class="img-placeholder rounded-xl w-full h-56 sm:h-80 mb-6">
-            <svg
-              class="w-10 h-10 text-tool-text/40"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <span>[ Diagram: Architecture / Request Flow ]</span>
-          </div>!-->
-          <div class="grid sm:grid-cols-3 gap-3">
+          <div class="arch-box p-4 mb-6 text-xs font-mono leading-relaxed overflow-x-auto text-text-secondary">
+            <pre>Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completions──▶ Inference server
+                                    │        ▲
+                          tool_calls loop    │ generate-image-tool
+                                    ▼        │
+                             MCP Client ──▶ MCP Server (@rekog/mcp-nest, self)
+                                    │
+                                    ▼
+                           InvokeAI (9090) — txt2img via REST + Socket.IO</pre>
+          </div>
+          <div class="grid sm:grid-cols-4 gap-3">
             <div class="bg-surface-raised border border-border-default rounded-lg p-4 text-center">
               <p class="text-text-muted text-xs uppercase tracking-wider font-semibold mb-1">
                 Frontend
@@ -313,10 +396,17 @@ import {
             </div>
             <div class="bg-surface-raised border border-border-default rounded-lg p-4 text-center">
               <p class="text-text-muted text-xs uppercase tracking-wider font-semibold mb-1">
-                AI Runtime
+                Inference Server
               </p>
-              <p class="font-medium text-text-primary">LM Studio</p>
-              <p class="text-text-muted text-xs mt-1">localhost:1234</p>
+              <p class="font-medium text-text-primary">Any OpenAI-compatible</p>
+              <p class="text-text-muted text-xs mt-1">LM Studio, Ollama, llama.cpp, vLLM</p>
+            </div>
+            <div class="bg-surface-raised border border-border-default rounded-lg p-4 text-center">
+              <p class="text-text-muted text-xs uppercase tracking-wider font-semibold mb-1">
+                Image Gen
+              </p>
+              <p class="font-medium text-text-primary">InvokeAI</p>
+              <p class="text-text-muted text-xs mt-1">localhost:9090</p>
             </div>
           </div>
         </section>
@@ -378,7 +468,7 @@ import {
         <!-- GETTING STARTED -->
         <section id="getting-started">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Getting Started</h2>
-          <p class="text-text-secondary mb-8">Up and running in four steps.</p>
+          <p class="text-text-secondary mb-8">Up and running in a few steps.</p>
           <div class="space-y-4">
             <ng-container *ngFor="let step of steps; let last = last">
               <div class="relative flex gap-4 sm:gap-5" [class.step-line]="!last">
@@ -429,18 +519,24 @@ import {
             <div class="overflow-x-auto">
               <pre
                 class="px-5 py-4 text-xs leading-relaxed text-text-secondary"
-              ><span class="text-text-muted"># MongoDB</span>
+              ><span class="text-text-muted"># MongoDB connection URI</span>
 <span class="text-success-text">MONGODB_URI</span>=mongodb://localhost:27017/lmStudioWrapper
 
-<span class="text-text-muted"># LM Studio local server</span>
+<span class="text-text-muted"># OpenAI-compatible inference server (LM Studio, Ollama, llama.cpp, vLLM, ...)</span>
 <span class="text-success-text">LM_STUDIO_BASE_URL</span>=http://localhost:1234
 <span class="text-success-text">LM_STUDIO_API_TOKEN</span>=            <span class="text-text-muted"># optional</span>
 
-<span class="text-text-muted"># JWT</span>
+<span class="text-text-muted"># JWT signing secret</span>
 <span class="text-success-text">JWT_SECRET</span>=your-very-secret-key
 
-<span class="text-text-muted"># Must be reachable FROM LM Studio for MCP callbacks</span>
+<span class="text-text-muted"># Backend's own MCP client connects here — safe as localhost/LAN IP</span>
 <span class="text-success-text">SELF_MCP_URL</span>=http://192.168.0.34:8888/tools/mcp
+
+<span class="text-text-muted"># Additional external MCP servers, comma-separated (optional)</span>
+<span class="text-text-muted"># MCP_SERVER_URLS</span>=http://example.com/mcp,http://another-host:9000/mcp
+
+<span class="text-text-muted"># Public base URL of this backend — used to build asset URLs (must be browser-reachable)</span>
+<span class="text-success-text">SELF_URL</span>=http://localhost:8888
 
 <span class="text-success-text">PORT</span>=8888
 <span class="text-success-text">USE_SWAGGER</span>=true       <span
@@ -455,9 +551,13 @@ import {
               class="w-4 h-4 text-info-text flex-shrink-0 mt-0.5"
             />
             <p class="text-xs text-info-text">
-              <strong>SELF_MCP_URL</strong> must be the LAN IP reachable from LM Studio's process —
-              not <code class="bg-info-bg px-1 rounded">localhost</code> — so MCP tool callbacks
-              succeed during inference.
+              Since the backend's own <strong>McpClientService</strong> is now what calls MCP
+              tools, <strong>SELF_MCP_URL</strong> only needs to be reachable from the backend
+              process itself — it no longer needs to be reachable from LM Studio.
+              <strong>SELF_URL</strong> must be reachable from the browser, or generated asset
+              links (e.g. AI-generated images) will be broken. The InvokeAI base URL is currently
+              hard-coded to <code class="bg-info-bg px-1 rounded">http://127.0.0.1:9090</code> in
+              <code class="bg-info-bg px-1 rounded">app.module.ts</code>.
             </p>
           </div>
         </section>
@@ -466,14 +566,20 @@ import {
         <section>
           <h2 class="text-2xl font-bold text-text-primary mb-2">MCP Tool Integration</h2>
           <p class="text-text-secondary mb-6">
-            The NestJS backend registers itself as an MCP server via
+            The NestJS backend plays <strong>both</strong> MCP roles at once: an
+            <strong>MCP server</strong> (<code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+            >apps/api/src/tools/api.tools.ts</code
+            >, via
             <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
             >&#64;rekog/mcp-nest</code
-            >, exposing both Streamable HTTP and SSE transports at
+            >) exposing Streamable HTTP + SSE transports at
             <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
             >/tools/mcp</code
-            >. The user's JWT is forwarded with every MCP callback, giving tools full access to
-            authenticated user data.
+            >, and an <strong>MCP client</strong> that connects to that same server (and any
+            others configured via <code class="text-accent">MCP_SERVER_URLS</code>), lists its
+            tools, and calls them on the model's behalf — forwarding the authenticated user's JWT
+            and current <code class="text-accent">chatId</code> so tools have full access to the
+            user's context.
           </p>
           <img
             class="dark:hidden block mb-2"
@@ -500,9 +606,93 @@ import {
               To add a new tool: create an <code class="text-accent">&#64;Injectable()</code> class
               in <code class="text-accent">apps/api/src/tools/</code>, decorate methods with
               <code class="text-accent">&#64;Tool(...)</code> from
-              <code class="text-accent">&#64;rekog/mcp-nest</code>, and register it as a provider in
-              <code class="text-accent">AppModule</code>.
+              <code class="text-accent">&#64;rekog/mcp-nest</code>, register it as a provider in
+              <code class="text-accent">AppModule</code>, and add its name to the
+              <code class="text-accent">allowedTools</code> list in
+              <code class="text-accent">OpenAiService.chatStreamCompletions</code> so it's
+              actually offered to the model.
             </p>
+          </div>
+        </section>
+
+        <!-- IMAGE GENERATION -->
+        <section>
+          <h2 class="text-2xl font-bold text-text-primary mb-2">Image Generation (InvokeAI)</h2>
+          <p class="text-text-secondary mb-6">
+            The <code class="text-accent">generate-image-tool</code> MCP tool lets the model
+            generate images on demand during a conversation via a locally running
+            <a
+              href="https://invoke-ai.github.io/InvokeAI/"
+              target="_blank"
+              rel="noopener"
+              class="text-accent underline"
+            >InvokeAI</a
+            >
+            instance.
+          </p>
+          <div class="space-y-3">
+            <ng-container *ngFor="let step of invokeSteps">
+              <div
+                class="bg-surface-raised border border-border-default rounded-xl p-4 flex gap-3 items-start"
+              >
+                <span
+                  class="flex-shrink-0 w-7 h-7 rounded-full bg-info-bg border border-info-border flex items-center justify-center text-info-text font-bold text-xs"
+                >{{ step.n }}</span
+                >
+                <p class="text-sm text-text-secondary leading-relaxed">
+                  <strong class="text-text-primary">{{ step.title }}</strong> — {{ step.detail }}
+                </p>
+              </div>
+            </ng-container>
+          </div>
+        </section>
+
+        <!-- IMAGE UPLOAD -->
+        <section>
+          <h2 class="text-2xl font-bold text-text-primary mb-2">Image Upload</h2>
+          <p class="text-text-secondary mb-6">
+            Users can attach one or more images to a chat message before sending. Attached files
+            are listed below the textarea with filename and size, and can be removed before
+            sending. On send, each image is uploaded to
+            <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+            >POST /assets/:chatId</code
+            >
+            as <code class="text-accent">multipart/form-data</code>, validated for MIME type
+            (max <strong>10 MB</strong>), and stored as a binary blob in the
+            <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+            >image_blobs</code
+            >
+            MongoDB collection, then forwarded to the model as vision content.
+          </p>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="bg-surface-raised border border-border-default rounded-xl p-5">
+              <div class="flex items-center gap-2 mb-3">
+                <span
+                  class="w-7 h-7 rounded-lg bg-tool-bg flex items-center justify-center text-tool-text"
+                >
+                  <ng-icon name="heroPhoto" class="w-4 h-4" />
+                </span>
+                <p class="font-semibold text-sm text-text-primary">Supported formats</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  *ngFor="let fmt of imageFormats"
+                  class="badge-pill bg-tool-bg text-tool-text border border-tool-border"
+                >{{ fmt }}</span
+                >
+              </div>
+            </div>
+            <div class="bg-surface-raised border border-border-default rounded-xl p-5">
+              <p class="font-semibold text-sm text-text-primary mb-2">Retrieval routes</p>
+              <p class="text-xs text-text-secondary leading-relaxed mb-1">
+                <code class="text-accent">GET /assets/:chatId/:filename</code> — authenticated,
+                owner or shared-chat access
+              </p>
+              <p class="text-xs text-text-secondary leading-relaxed">
+                <code class="text-accent">GET /assets/filequery/:filename?chatId=</code> —
+                authenticated, used for AI-generated image references
+              </p>
+            </div>
           </div>
         </section>
 
@@ -510,9 +700,9 @@ import {
         <section>
           <h2 class="text-2xl font-bold text-text-primary mb-2">Message Encryption</h2>
           <p class="text-text-secondary mb-8">
-            Per-chat AES-256 encryption can be opted into on the OpenAI Responses route. Only
-            ciphertext ever reaches LM Studio's message store — plaintext never leaves the NestJS
-            trust boundary.
+            Per-chat AES-256 encryption can be opted into when creating a new chat session. Only
+            ciphertext ever reaches the inference server's own message store/logs — plaintext
+            never leaves the NestJS trust boundary.
           </p>
           <div class="grid sm:grid-cols-5 gap-6 sm:gap-2 mb-8">
             <ng-container *ngFor="let step of encryptionFlow">
@@ -557,7 +747,7 @@ import {
                       >&#10003; Yes</span
                       >
                     }
-                    @if (row.plaintext) {
+                    @if (!row.plaintext) {
                       <span
                         class="badge-pill bg-error-bg text-error-text border border-error-border"
                       >&#10007; No</span
@@ -624,10 +814,10 @@ import {
 
         <!-- TOKEN LIMITING -->
         <section>
-          <h2 class="text-2xl font-bold text-text-primary mb-2">Token Rate Limiting</h2>
+          <h2 class="text-2xl font-bold text-text-primary mb-2">Token Usage &amp; Rate Limiting</h2>
           <p class="text-text-secondary mb-6">
-            Token consumption is tracked per user against configurable subscription-tier budgets
-            stored in the
+            Token consumption is tracked per user and enforced against subscription-tier limits
+            configured in the
             <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-reasoning-text"
             >token_limit_configs</code
             >
@@ -647,10 +837,12 @@ import {
           <p class="text-xs text-text-muted">
             After each completed inference,
             <code class="text-reasoning-text">TokenLimitService.updateUsedTokens()</code> increments
-            the user's counter. If the limit is reached, an
+            the user's <code class="text-reasoning-text">usedTokens</code> counter. If the limit
+            is reached, an
             <code class="text-reasoning-text">api.info</code>
             SSE event is emitted with the reset timestamp. Limits reset automatically when
-            <code class="text-reasoning-text">tokenCountResetDate</code> elapses.
+            <code class="text-reasoning-text">tokenCountResetDate</code> elapses. Token limits can
+            be managed via the <code class="text-reasoning-text">TokenLimitModule</code> controller.
           </p>
         </section>
 
@@ -695,7 +887,7 @@ import {
         <footer
           class="border-t border-border-default pt-8 pb-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-text-muted"
         >
-          <p>LM Studio Chat Client &mdash; MIT License</p>
+          <p>Liquid Local AI Client &mdash; MIT License</p>
           <div class="flex gap-4">
             <span>Angular <strong class="text-text-secondary">21</strong></span>
             <span>NestJS <strong class="text-text-secondary">11</strong></span>
@@ -745,6 +937,18 @@ export class ReadmeComponent {
       badgeClass: 'bg-tool-bg text-tool-text border border-tool-border',
     },
     {
+      layer: 'Image Gen',
+      tech: 'InvokeAI (REST + Socket.IO)',
+      version: 'local',
+      badgeClass: 'bg-info-bg text-info-text border border-info-border',
+    },
+    {
+      layer: 'File Upload',
+      tech: '@nestjs/platform-express (Multer)',
+      version: 'memory storage',
+      badgeClass: 'bg-tool-bg text-tool-text border border-tool-border',
+    },
+    {
       layer: 'Encryption',
       tech: 'CryptoJS AES',
       version: '^4.2.0',
@@ -774,59 +978,61 @@ export class ReadmeComponent {
       version: '22.6.5',
       badgeClass: 'bg-reasoning-bg text-reasoning-text border border-reasoning-border',
     },
-    {
-      layer: 'Markdown',
-      tech: 'marked + KaTeX',
-      version: '^18 / ^0.16',
-      badgeClass: 'bg-success-bg text-success-text border border-success-border',
-    },
-    {
-      layer: 'Streaming',
-      tech: 'SSE / RxJS 7',
-      version: '^7.8.1',
-      badgeClass: 'bg-info-bg text-info-text border border-info-border',
-    },
   ];
 
   features = [
     {
-      title: 'Dual API Modes',
-      desc: "LM Studio's native /api/v1/chat or the OpenAI-compatible /v1/responses/create — switchable from the UI.",
+      title: 'OpenAI-compatible Chat Completions',
+      desc: 'Talks to any backend implementing /v1/chat/completions — LM Studio, Ollama, llama.cpp, vLLM. The only supported chat path.',
       icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
       iconBg: 'bg-accent/15',
       iconColor: 'text-accent',
     },
     {
-      title: 'Real-time SSE Streaming',
-      desc: 'Responses are streamed token-by-token to the browser over Server-Sent Events.',
-      icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-      iconBg: 'bg-tool-bg',
-      iconColor: 'text-tool-text',
-    },
-    {
-      title: 'MCP Tool Server',
-      desc: "NestJS registers itself as an MCP server. LM Studio can call back into it mid-inference using the user's JWT.",
+      title: 'Client-side MCP orchestration',
+      desc: "The backend runs its own MCP client, translates MCP tools into OpenAI function-tool definitions, and executes tool_calls itself in a loop.",
       icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z',
       iconBg: 'bg-reasoning-bg',
       iconColor: 'text-reasoning-text',
     },
     {
+      title: 'Real-time SSE Streaming',
+      desc: 'Responses are streamed token-by-token to the browser, including reasoning/"thinking" deltas where the model provides them.',
+      icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+      iconBg: 'bg-tool-bg',
+      iconColor: 'text-tool-text',
+    },
+    {
+      title: 'AI Image Generation',
+      desc: 'The model can call generate-image-tool during inference; the backend submits a txt2img job to InvokeAI, stores the result, and returns it as a chat image.',
+      icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z',
+      iconBg: 'bg-info-bg',
+      iconColor: 'text-info-text',
+    },
+    {
+      title: 'Image Upload',
+      desc: 'Attach one or more images before sending; they are stored in MongoDB via the Assets API and forwarded to the model as vision content.',
+      icon: 'M3 16l4.586-4.586a2 2 0 012.828 0L15 16m-2-2l1.586-1.586a2 2 0 012.828 0L21 16M3 20h18a2 2 0 002-2V6a2 2 0 00-2-2H3a2 2 0 00-2 2v12a2 2 0 002 2z',
+      iconBg: 'bg-tool-bg',
+      iconColor: 'text-tool-text',
+    },
+    {
       title: 'AES Message Encryption',
-      desc: 'Per-chat opt-in encryption. Only ciphertext reaches LM Studio; the model decrypts via MCP at inference time.',
+      desc: 'Per-chat opt-in encryption. Only ciphertext reaches the inference server; the model decrypts via MCP at inference time.',
       icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
       iconBg: 'bg-warn-bg',
       iconColor: 'text-warn-text',
     },
     {
       title: 'Persistent Chat History',
-      desc: 'Every exchange is stored in MongoDB. Conversation continuity via previous_response_id chaining across page refreshes.',
+      desc: 'Every exchange is stored in MongoDB as a rolling message array, rehydrated on demand — including tool-call banners and image attachments.',
       icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
       iconBg: 'bg-success-bg',
       iconColor: 'text-success-text',
     },
     {
-      title: 'Token Rate Limiting',
-      desc: 'Configurable token budgets per subscription tier with automatic interval resets and SSE limit notifications.',
+      title: 'Subscription-Aware Token Limiting',
+      desc: 'Configurable token budgets per subscription tier (free / basic) with automatic reset intervals and SSE limit notifications.',
       icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
       iconBg: 'bg-error-bg',
       iconColor: 'text-error-text',
@@ -840,7 +1046,7 @@ export class ReadmeComponent {
     },
     {
       title: 'Reasoning Mode',
-      desc: 'Pass reasoning effort (off / low / medium / high) to supported models via the OpenAI Responses endpoint.',
+      desc: 'Pass reasoning effort (off / low / medium / high) to supported models via the Chat Completions endpoint.',
       icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
       iconBg: 'bg-reasoning-bg',
       iconColor: 'text-reasoning-text',
@@ -882,14 +1088,45 @@ export class ReadmeComponent {
       desc: "Returns the authenticated user's current token consumption, subscription tier, configured limit, and next reset timestamp.",
     },
     {
+      name: 'get-content-from-file-ids',
+      desc: 'Returns the base64 content of previously uploaded or generated files, looked up by file ID.',
+    },
+    {
+      name: 'generate-file-from-content-tool',
+      desc: 'Generates a downloadable file from provided content and stores it as an asset.',
+    },
+    {
+      name: 'generate-zip-from-file-ids',
+      desc: 'Bundles multiple previously generated or uploaded files into a downloadable ZIP archive.',
+    },
+    {
+      name: 'get-image-tool',
+      desc: 'Fetches an image from a URL and stores it as an asset.',
+    },
+    {
       name: 'decrypt-message-tool',
-      desc: "Receives the full, unmodified ciphertext of the user's message. Looks up the per-chat cryptoKey from chat_metadata in MongoDB and returns the AES-decrypted plaintext to the model.",
+      desc: "Receives the full, unmodified ciphertext of the user's message, looks up the per-chat cryptoKey from chat_metadata, and returns the AES-decrypted plaintext to the model.",
     },
     {
       name: 'greeting-tool',
       desc: 'Example tool that returns a greeting and demonstrates streaming progress reporting via context.reportProgress().',
     },
+    {
+      name: 'generate-image-tool',
+      desc: 'Generates an image from a text prompt via InvokeAI, stores it in MongoDB, and returns a chat-renderable image URL.',
+    },
   ];
+
+  invokeSteps = [
+    { n: '1', title: 'Tool call', detail: 'the model calls generate-image-tool with a natural-language prompt string.' },
+    { n: '2', title: 'Model lookup', detail: 'InvokeService queries InvokeAI\'s /api/v2/models/ endpoint for the first model matching the requested name (default: "Dreamshaper 8").' },
+    { n: '3', title: 'Job submission', detail: 'a txt2img pipeline graph (512×512, 30 steps, dpmpp_3m_k scheduler, CFG 7.5) is submitted via POST /api/v1/queue/default/enqueue_batch.' },
+    { n: '4', title: 'Socket.IO listener', detail: 'the service subscribes to the default queue over Socket.IO and waits for an invocation_complete event with the generated image name.' },
+    { n: '5', title: 'Download & persist', detail: 'the image is downloaded from /api/v1/images/i/{name}/full and stored as a binary blob via AssetsService.' },
+    { n: '6', title: 'URL construction', detail: 'a public asset URL ({SELF_URL}/assets/filequery/{filename}?chatId=...) is returned and rendered as a Markdown image in the chat.' },
+  ];
+
+  imageFormats = ['JPEG', 'PNG', 'WebP', 'GIF', 'AVIF'];
 
   encryptionFlow = [
     {
@@ -902,7 +1139,7 @@ export class ReadmeComponent {
       n: '2',
       title: 'Encrypt',
       detail:
-        'Backend runs CryptoJS.AES.encrypt() on all message content before forwarding to LM Studio.',
+        'Backend runs CryptoJS.AES.encrypt() on all message content before forwarding to the inference server.',
       circleClass: 'bg-warn-bg border-warn-border text-warn-text',
     },
     {
@@ -915,7 +1152,7 @@ export class ReadmeComponent {
       n: '4',
       title: 'MCP decrypt',
       detail:
-        'LM Studio calls back — decrypt-message-tool fetches key from DB and returns plaintext.',
+        'The model calls back — decrypt-message-tool fetches the key from DB and returns plaintext.',
       circleClass: 'bg-reasoning-bg border-reasoning-border text-reasoning-text',
     },
     {
@@ -928,7 +1165,7 @@ export class ReadmeComponent {
 
   securityBoundaries = [
     { what: 'cryptoKey', where: 'chat_metadata MongoDB document', plaintext: true },
-    { what: 'Messages → LM Studio store', where: 'LM Studio message store', plaintext: false },
+    { what: 'Messages → inference server', where: 'Inference server message store', plaintext: false },
     { what: 'Browser → NestJS (HTTP body)', where: 'HTTPS in production', plaintext: true },
     { what: 'chatId MCP header', where: 'MCP request header (key lookup)', plaintext: true },
   ];
@@ -1001,20 +1238,20 @@ export class ReadmeComponent {
     {
       method: 'GET',
       path: '/lm-studio/models',
-      desc: 'List models available in LM Studio',
-      methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
+      desc: '⚠️ Disabled — list models via native LM Studio API',
+      methodClass: 'bg-error-bg text-error-text border border-error-border',
     },
     {
       method: 'POST',
       path: '/lm-studio/chat',
-      desc: 'Non-streaming chat (LM Studio native API)',
-      methodClass: 'bg-success-bg text-success-text border border-success-border',
+      desc: '⚠️ Disabled — non-streaming chat (LM Studio native API)',
+      methodClass: 'bg-error-bg text-error-text border border-error-border',
     },
     {
       method: 'POST',
       path: '/lm-studio/chat/stream',
-      desc: 'Streaming SSE (LM Studio native API)',
-      methodClass: 'bg-success-bg text-success-text border border-success-border',
+      desc: '⚠️ Disabled — streaming SSE chat (LM Studio native API)',
+      methodClass: 'bg-error-bg text-error-text border border-error-border',
     },
     {
       method: 'GET',
@@ -1024,20 +1261,26 @@ export class ReadmeComponent {
     },
     {
       method: 'POST',
-      path: '/openai/chat/stream',
-      desc: 'Streaming SSE via OpenAI Responses API',
-      methodClass: 'bg-success-bg text-success-text border border-success-border',
+      path: '/openai/chat-stream',
+      desc: '⚠️ Disabled — streaming SSE via OpenAI Responses API',
+      methodClass: 'bg-error-bg text-error-text border border-error-border',
     },
     {
       method: 'POST',
-      path: '/openai/completions/stream',
-      desc: 'Streaming SSE via OpenAI Completions API',
+      path: '/openai/completions-stream',
+      desc: '✅ Active — streaming SSE via Chat Completions API with client-side MCP tool orchestration',
       methodClass: 'bg-success-bg text-success-text border border-success-border',
     },
     {
       method: 'GET',
       path: '/chat-metadata',
       desc: "List the user's chat sessions",
+      methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
+    },
+    {
+      method: 'GET',
+      path: '/chat-metadata/:id',
+      desc: 'Get a single chat session',
       methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
     },
     {
@@ -1065,7 +1308,31 @@ export class ReadmeComponent {
       methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
     },
     {
+      method: 'POST',
+      path: '/assets/:chatId',
+      desc: 'Upload an image for a chat session',
+      methodClass: 'bg-success-bg text-success-text border border-success-border',
+    },
+    {
       method: 'GET',
+      path: '/assets/:chatId/:filename',
+      desc: 'Retrieve an uploaded image (owner or shared-chat access)',
+      methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
+    },
+    {
+      method: 'GET',
+      path: '/assets/filequery/:filename?chatId=',
+      desc: 'Retrieve an image by query param (authenticated, used for AI-generated image references)',
+      methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
+    },
+    {
+      method: 'GET',
+      path: '/invoke/test',
+      desc: 'Test endpoint — generates a sample image via InvokeAI',
+      methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
+    },
+    {
+      method: 'GET/POST',
       path: '/tools/mcp',
       desc: 'MCP server endpoint (SSE + Streamable HTTP)',
       methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
