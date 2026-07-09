@@ -9,6 +9,7 @@ import {
   ChatMetadataSchema,
 } from '../chat-metadata/chat-metadata.schema';
 import { AssetBlob, AssetBlobSchema } from '../assets/asset-blob.schema';
+import { User, UserSchema } from '../auth/user.schema';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AssetBlob, AssetBlobSchema } from '../assets/asset-blob.schema';
       { name: Chat.name, schema: ChatSchema },
       { name: ChatMetadata.name, schema: ChatMetadataSchema },
       { name: AssetBlob.name, schema: AssetBlobSchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [ChatsController],

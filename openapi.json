@@ -315,15 +315,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "userId",
-            "required": true,
-            "in": "query",
-            "description": "User the file belongs to",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -424,6 +415,347 @@
         "summary": "Upload an image for a specific chat",
         "tags": [
           "assets"
+        ]
+      }
+    },
+    "/chats-metadata": {
+      "post": {
+        "operationId": "createChatMetadata",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChatMetadataDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMetadataDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new chat metadata entry",
+        "tags": [
+          "Chat Metadata"
+        ]
+      },
+      "get": {
+        "operationId": "listChatMetadata",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChatMetadataDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all chat metadata entries belonging to the authenticated user",
+        "tags": [
+          "Chat Metadata"
+        ]
+      }
+    },
+    "/chats-metadata/{id}": {
+      "get": {
+        "operationId": "getChatMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ChatMetadata ObjectId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMetadataDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Belongs to a different user"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a single chat metadata entry (must belong to the authenticated user)",
+        "tags": [
+          "Chat Metadata"
+        ]
+      },
+      "patch": {
+        "operationId": "updateChatMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ChatMetadata ObjectId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatMetadataDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMetadataDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Belongs to a different user"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a chat metadata entry",
+        "tags": [
+          "Chat Metadata"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteChatMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ChatMetadata ObjectId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted (cascade includes chat messages)"
+          },
+          "403": {
+            "description": "Belongs to a different user"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a chat metadata entry and all associated messages in the chats collection",
+        "tags": [
+          "Chat Metadata"
+        ]
+      }
+    },
+    "/chats-metadata/{id}/share": {
+      "post": {
+        "operationId": "shareChatMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ChatMetadata ObjectId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMetadataDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only the owner can share a chat"
+          },
+          "404": {
+            "description": "Not found, or target user not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Grant another user (by username) read/write access to this chat",
+        "tags": [
+          "Chat Metadata"
+        ]
+      }
+    },
+    "/chats-metadata/{id}/share/{userId}": {
+      "delete": {
+        "operationId": "unshareChatMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ChatMetadata ObjectId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "ObjectId of the user to revoke",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMetadataDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only the owner can revoke access"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke a shared user's access to this chat",
+        "tags": [
+          "Chat Metadata"
+        ]
+      }
+    },
+    "/chats-metadata/upload-file/{chatId}": {
+      "post": {
+        "operationId": "uploadFile",
+        "parameters": [
+          {
+            "name": "chatId",
+            "required": true,
+            "in": "path",
+            "description": "ChatId the file belongs to",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "{ url: string }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAndAddToUserAssetsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload an file  for a specific chat",
+        "tags": [
+          "Chat Metadata"
         ]
       }
     },
@@ -699,252 +1031,6 @@
         "summary": "Get all entries for a chat session (must belong to the authenticated user)",
         "tags": [
           "Chats"
-        ]
-      }
-    },
-    "/chats-metadata": {
-      "post": {
-        "operationId": "createChatMetadata",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateChatMetadataDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatMetadataDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a new chat metadata entry",
-        "tags": [
-          "Chat Metadata"
-        ]
-      },
-      "get": {
-        "operationId": "listChatMetadata",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ChatMetadataDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List all chat metadata entries belonging to the authenticated user",
-        "tags": [
-          "Chat Metadata"
-        ]
-      }
-    },
-    "/chats-metadata/{id}": {
-      "get": {
-        "operationId": "getChatMetadata",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ChatMetadata ObjectId",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatMetadataDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Belongs to a different user"
-          },
-          "404": {
-            "description": "Not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get a single chat metadata entry (must belong to the authenticated user)",
-        "tags": [
-          "Chat Metadata"
-        ]
-      },
-      "patch": {
-        "operationId": "updateChatMetadata",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ChatMetadata ObjectId",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateChatMetadataDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatMetadataDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Belongs to a different user"
-          },
-          "404": {
-            "description": "Not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a chat metadata entry",
-        "tags": [
-          "Chat Metadata"
-        ]
-      },
-      "delete": {
-        "operationId": "deleteChatMetadata",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ChatMetadata ObjectId",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Deleted (cascade includes chat messages)"
-          },
-          "403": {
-            "description": "Belongs to a different user"
-          },
-          "404": {
-            "description": "Not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a chat metadata entry and all associated messages in the chats collection",
-        "tags": [
-          "Chat Metadata"
-        ]
-      }
-    },
-    "/chats-metadata/upload-file/{chatId}": {
-      "post": {
-        "operationId": "uploadFile",
-        "parameters": [
-          {
-            "name": "chatId",
-            "required": true,
-            "in": "path",
-            "description": "ChatId the file belongs to",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "{ url: string }",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateAndAddToUserAssetsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Upload an file  for a specific chat",
-        "tags": [
-          "Chat Metadata"
         ]
       }
     },
@@ -1469,6 +1555,327 @@
           }
         }
       },
+      "EphemeralMcpIntegrationDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ephemeral_mcp"
+            ]
+          },
+          "server_label": {
+            "type": "string"
+          },
+          "server_url": {
+            "type": "string"
+          },
+          "allowed_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "headers": {
+            "type": "object",
+            "description": "Custom HTTP headers sent to the MCP server"
+          }
+        },
+        "required": [
+          "type",
+          "server_label",
+          "server_url"
+        ]
+      },
+      "CreateChatMetadataDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for this chat session"
+          },
+          "usedModel": {
+            "type": "string",
+            "description": "LLM model identifier used in this session"
+          },
+          "client": {
+            "type": "string",
+            "enum": [
+              "OPENAI",
+              "LMSTUDIO"
+            ]
+          },
+          "reasoningMode": {
+            "type": "string",
+            "description": "Reasoning mode (e.g. off / low / medium / high / on)"
+          },
+          "tools": {
+            "description": "MCP integrations to associate with this session",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EphemeralMcpIntegrationDto"
+            }
+          },
+          "useCrypto": {
+            "type": "boolean"
+          },
+          "cryptoKey": {
+            "type": "string"
+          },
+          "openAiEndpointPreference": {
+            "type": "string",
+            "enum": [
+              "RESPONSES",
+              "COMPLETION"
+            ]
+          },
+          "useInvoke": {
+            "type": "boolean"
+          },
+          "invokeAiModelToUse": {
+            "type": "string",
+            "enum": [
+              "Dreamshaper 8",
+              "Juggernaut XL v9"
+            ]
+          },
+          "lastMessageSentAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "usedModel",
+          "client",
+          "reasoningMode"
+        ]
+      },
+      "GeneratedAssetDto": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "refId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "IMAGE",
+              "FILE"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "thumbnail": {
+            "type": "string"
+          },
+          "sizeKb": {
+            "type": "number"
+          },
+          "mimeType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "_id",
+          "filename",
+          "refId",
+          "type",
+          "url"
+        ]
+      },
+      "ChatMetadataDto": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId — use as chatInternalId when fetching messages"
+          },
+          "name": {
+            "type": "string"
+          },
+          "client": {
+            "type": "string",
+            "enum": [
+              "OPENAI",
+              "LMSTUDIO"
+            ]
+          },
+          "usedModel": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "ObjectId of the owning user"
+          },
+          "reasoningMode": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EphemeralMcpIntegrationDto"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "useCrypto": {
+            "type": "boolean"
+          },
+          "cryptoKey": {
+            "type": "string"
+          },
+          "openAiEndpointPreference": {
+            "type": "string",
+            "enum": [
+              "RESPONSES",
+              "COMPLETION"
+            ]
+          },
+          "generatedAssets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeneratedAssetDto"
+            }
+          },
+          "userAssets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeneratedAssetDto"
+            }
+          },
+          "lastMessageSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "useInvoke": {
+            "type": "boolean"
+          },
+          "invokeAiModelToUse": {
+            "type": "string",
+            "enum": [
+              "Dreamshaper 8",
+              "Juggernaut XL v9"
+            ]
+          },
+          "sharedWith": {
+            "description": "ObjectIds of users granted access to this chat",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sharedWithUsernames": {
+            "description": "Usernames of users in sharedWith, same order/index — resolved server-side",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "True while a prompt is currently streaming for this chat"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "client",
+          "usedModel",
+          "userId",
+          "reasoningMode",
+          "createdAt",
+          "updatedAt",
+          "lastMessageSentAt"
+        ]
+      },
+      "UpdateChatMetadataDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "usedModel": {
+            "type": "string"
+          },
+          "reasoningMode": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EphemeralMcpIntegrationDto"
+            }
+          },
+          "lastMessageSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "useCrypto": {
+            "type": "boolean"
+          },
+          "cryptoKey": {
+            "type": "string"
+          },
+          "openAiEndpointPreference": {
+            "type": "string",
+            "enum": [
+              "RESPONSES",
+              "COMPLETION"
+            ]
+          },
+          "useInvoke": {
+            "type": "boolean"
+          },
+          "invokeAiModelToUse": {
+            "type": "string",
+            "enum": [
+              "Dreamshaper 8",
+              "Juggernaut XL v9"
+            ]
+          }
+        }
+      },
+      "CreateAndAddToUserAssetsResponseDto": {
+        "type": "object",
+        "properties": {
+          "sizeKb": {
+            "type": "number",
+            "description": "Asset size in KB"
+          },
+          "assetUrl": {
+            "type": "string",
+            "description": "URL to asset"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Filename"
+          },
+          "internalFilename": {
+            "type": "string",
+            "description": "Internal Filename"
+          }
+        },
+        "required": [
+          "sizeKb",
+          "assetUrl",
+          "filename",
+          "internalFilename"
+        ]
+      },
       "TextInputDto": {
         "type": "object",
         "properties": {
@@ -1528,38 +1935,6 @@
         "required": [
           "type",
           "id"
-        ]
-      },
-      "EphemeralMcpIntegrationDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "ephemeral_mcp"
-            ]
-          },
-          "server_label": {
-            "type": "string"
-          },
-          "server_url": {
-            "type": "string"
-          },
-          "allowed_tools": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "headers": {
-            "type": "object",
-            "description": "Custom HTTP headers sent to the MCP server"
-          }
-        },
-        "required": [
-          "type",
-          "server_label",
-          "server_url"
         ]
       },
       "QuantizationDto": {
@@ -2080,6 +2455,14 @@
           "updatedAt": {
             "format": "date-time",
             "type": "string"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username of the user who wrote this entry (shared chats)"
+          },
+          "messages": {
+            "type": "object",
+            "description": "Rolling Chat Completions message array, when applicable"
           }
         },
         "required": [
@@ -2089,277 +2472,6 @@
           "response",
           "createdAt",
           "updatedAt"
-        ]
-      },
-      "CreateChatMetadataDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Human-readable name for this chat session"
-          },
-          "usedModel": {
-            "type": "string",
-            "description": "LLM model identifier used in this session"
-          },
-          "client": {
-            "type": "string",
-            "enum": [
-              "OPENAI",
-              "LMSTUDIO"
-            ]
-          },
-          "reasoningMode": {
-            "type": "string",
-            "description": "Reasoning mode (e.g. off / low / medium / high / on)"
-          },
-          "tools": {
-            "description": "MCP integrations to associate with this session",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EphemeralMcpIntegrationDto"
-            }
-          },
-          "useCrypto": {
-            "type": "boolean"
-          },
-          "cryptoKey": {
-            "type": "string"
-          },
-          "openAiEndpointPreference": {
-            "type": "string",
-            "enum": [
-              "RESPONSES",
-              "COMPLETION"
-            ]
-          },
-          "useInvoke": {
-            "type": "boolean"
-          },
-          "invokeAiModelToUse": {
-            "type": "string",
-            "enum": [
-              "Dreamshaper 8",
-              "Juggernaut XL v9"
-            ]
-          },
-          "lastMessageSentAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "usedModel",
-          "client",
-          "reasoningMode"
-        ]
-      },
-      "GeneratedAssetDto": {
-        "type": "object",
-        "properties": {
-          "_id": {
-            "type": "string"
-          },
-          "filename": {
-            "type": "string"
-          },
-          "refId": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "IMAGE",
-              "FILE"
-            ]
-          },
-          "url": {
-            "type": "string"
-          },
-          "thumbnail": {
-            "type": "string"
-          },
-          "sizeKb": {
-            "type": "number"
-          },
-          "mimeType": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "_id",
-          "filename",
-          "refId",
-          "type",
-          "url"
-        ]
-      },
-      "ChatMetadataDto": {
-        "type": "object",
-        "properties": {
-          "_id": {
-            "type": "string",
-            "description": "MongoDB ObjectId — use as chatInternalId when fetching messages"
-          },
-          "name": {
-            "type": "string"
-          },
-          "client": {
-            "type": "string",
-            "enum": [
-              "OPENAI",
-              "LMSTUDIO"
-            ]
-          },
-          "usedModel": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string",
-            "description": "ObjectId of the owning user"
-          },
-          "reasoningMode": {
-            "type": "string"
-          },
-          "tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EphemeralMcpIntegrationDto"
-            }
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "useCrypto": {
-            "type": "boolean"
-          },
-          "cryptoKey": {
-            "type": "string"
-          },
-          "openAiEndpointPreference": {
-            "type": "string",
-            "enum": [
-              "RESPONSES",
-              "COMPLETION"
-            ]
-          },
-          "generatedAssets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GeneratedAssetDto"
-            }
-          },
-          "userAssets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GeneratedAssetDto"
-            }
-          },
-          "lastMessageSentAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "useInvoke": {
-            "type": "boolean"
-          },
-          "invokeAiModelToUse": {
-            "type": "string",
-            "enum": [
-              "Dreamshaper 8",
-              "Juggernaut XL v9"
-            ]
-          }
-        },
-        "required": [
-          "_id",
-          "name",
-          "client",
-          "usedModel",
-          "userId",
-          "reasoningMode",
-          "createdAt",
-          "updatedAt",
-          "lastMessageSentAt"
-        ]
-      },
-      "UpdateChatMetadataDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "usedModel": {
-            "type": "string"
-          },
-          "reasoningMode": {
-            "type": "string"
-          },
-          "tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EphemeralMcpIntegrationDto"
-            }
-          },
-          "lastMessageSentAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "useCrypto": {
-            "type": "boolean"
-          },
-          "cryptoKey": {
-            "type": "string"
-          },
-          "openAiEndpointPreference": {
-            "type": "string",
-            "enum": [
-              "RESPONSES",
-              "COMPLETION"
-            ]
-          },
-          "useInvoke": {
-            "type": "boolean"
-          },
-          "invokeAiModelToUse": {
-            "type": "string",
-            "enum": [
-              "Dreamshaper 8",
-              "Juggernaut XL v9"
-            ]
-          }
-        }
-      },
-      "CreateAndAddToUserAssetsResponseDto": {
-        "type": "object",
-        "properties": {
-          "sizeKb": {
-            "type": "number",
-            "description": "Asset size in KB"
-          },
-          "assetUrl": {
-            "type": "string",
-            "description": "URL to asset"
-          },
-          "filename": {
-            "type": "string",
-            "description": "Filename"
-          },
-          "internalFilename": {
-            "type": "string",
-            "description": "Internal Filename"
-          }
-        },
-        "required": [
-          "sizeKb",
-          "assetUrl",
-          "filename",
-          "internalFilename"
         ]
       },
       "ResponseConversationParamDto": {

@@ -521,14 +521,30 @@ The final response must be a direct answer to the decrypted message, not a repet
           tools: [],
         },
       );
-    } else if (!isNewChat && resolvedChatMetaId) {
-      await this.chatMetadataService.update(userId, resolvedChatMetaId, {
+    }
+
+    // Authorizes owner-or-shared access; throws ForbiddenException otherwise.
+    const chatMeta: ChatMetadataDocument =
+      await this.chatMetadataService.findOne(userId, resolvedChatMetaId!);
+
+    if (chatMeta.locked) {
+      this.writeSseEvent(res, 'error', {
+        type: 'error',
+        error: {
+          message:
+            'This chat is locked — another user is currently generating a response.',
+        },
+      });
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+
+    if (!isNewChat) {
+      await this.chatMetadataService.touch(resolvedChatMetaId!, {
         lastMessageSentAt: new Date(),
       });
     }
-
-    const chatMeta: ChatMetadataDocument =
-      await this.chatMetadataService.findOne(userId, resolvedChatMetaId!);
 
     const allowedTools = [
       'get-token-usage-tool',
@@ -601,6 +617,19 @@ The final response must be a direct answer to the decrypted message, not a repet
         ? (chatMeta.reasoningMode as any)
         : undefined);
 
+    await this.chatMetadataService.touch(resolvedChatMetaId!, {
+      locked: true,
+    });
+    const unlock = () =>
+      this.chatMetadataService
+        .touch(resolvedChatMetaId!, { locked: false })
+        .catch((error: any) =>
+          this.logger.error(`Failed to unlock chat: ${error.message}`),
+        );
+    // Belt-and-suspenders: unlock immediately if the client disconnects
+    // mid-stream, rather than waiting for the generation loop to notice.
+    res.on('close', unlock);
+
     try {
       for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
         const stream = (await this.openAi.chat.completions.create({
@@ -613,6 +642,7 @@ The final response must be a direct answer to the decrypted message, not a repet
         } as any)) as any as Stream<OpenAI.ChatCompletionChunk>;
 
         let assembledContent = '';
+        let assembledReasoning = '';
         const toolCallsAcc: Record<
           number,
           { id: string; name: string; arguments: string }
@@ -637,6 +667,9 @@ The final response must be a direct answer to the decrypted message, not a repet
 
           if (choice.delta?.content) {
             assembledContent += choice.delta.content;
+          }
+          if ((choice.delta as any)?.reasoning_content) {
+            assembledReasoning += (choice.delta as any).reasoning_content;
           }
           if (choice.delta?.tool_calls) {
             for (const tc of choice.delta.tool_calls) {
@@ -702,7 +735,13 @@ The final response must be a direct answer to the decrypted message, not a repet
           continue;
         }
 
-        messages.push({ role: 'assistant', content: assembledContent });
+        messages.push({
+          role: 'assistant',
+          content: assembledContent,
+          ...(assembledReasoning
+            ? { reasoning_content: assembledReasoning }
+            : {}),
+        });
         break;
       }
 
@@ -737,6 +776,9 @@ The final response must be a direct answer to the decrypted message, not a repet
         type: 'error',
         error: error.error ?? { message: error.message },
       });
+    } finally {
+      res.off('close', unlock);
+      await unlock();
     }
 
     this.openaiRequestService.destroy(requestId);

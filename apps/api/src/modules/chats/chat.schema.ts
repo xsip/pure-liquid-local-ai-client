@@ -113,4 +113,14 @@ export class ChatEntryDto {
 
   @ApiProperty()
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    description: 'Username of the user who wrote this entry (shared chats)',
+  })
+  username?: string;
+
+  @ApiPropertyOptional({
+    description: 'Rolling Chat Completions message array, when applicable',
+  })
+  messages?: Record<string, unknown>[] | null;
 }

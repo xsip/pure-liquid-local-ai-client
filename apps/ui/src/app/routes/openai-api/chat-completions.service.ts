@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { interval, Subscription, switchMap } from 'rxjs';
 import {
   OpenAiStreamService,
   McpCallProgressEvent,
@@ -50,8 +50,12 @@ export class ChatCompletionsService {
   readonly chatMessages = signal<ChatMessage[]>([]);
   readonly currentChatId = signal<string | null>(null);
 
+  /** True while this chat is locked server-side (another user's prompt is streaming). */
+  readonly locked = signal(false);
+
   private readonly lastUserInput = signal<string>('');
   private sub?: Subscription;
+  private lockPollSub?: Subscription;
 
   readonly showResend = computed(() => {
     const msgs = this.chatMessages();
@@ -113,7 +117,7 @@ export class ChatCompletionsService {
       invokeAiModelToUse?: InvokeAiModelToUseEnum;
     },
   ): void {
-    if (this.form.invalid || this.streaming()) return;
+    if (this.form.invalid || this.streaming() || this.locked()) return;
     let input = this.form.getRawValue().input!.trim();
 
     this.lastUserInput.set(input);
@@ -329,5 +333,38 @@ export class ChatCompletionsService {
 
   destroy(): void {
     this.sub?.unsubscribe();
+    this.stopLockPolling();
+  }
+
+  /**
+   * Starts/stops polling this chat's lock status. Only shared chats poll —
+   * non-shared chats have no other writer who could lock them, so polling
+   * would be pure overhead.
+   */
+  updateLockPolling(chatId: string, isShared: boolean, onUnlocked?: () => void): void {
+    this.stopLockPolling();
+    if (!isShared) {
+      this.locked.set(false);
+      return;
+    }
+    this.lockPollSub = interval(3000)
+      .pipe(switchMap(() => this.chatMetaService.getChatMetadata(chatId)))
+      .subscribe({
+        next: (meta) => {
+          const isLocked = !!meta.locked;
+          const wasLocked = this.locked();
+          this.locked.set(isLocked);
+          // Lock just released: the other user's turn finished streaming, so
+          // pull in whatever they added while we were watching.
+          if (wasLocked && !isLocked) onUnlocked?.();
+        },
+        error: () => this.stopLockPolling(),
+      });
+  }
+
+  stopLockPolling(): void {
+    this.lockPollSub?.unsubscribe();
+    this.lockPollSub = undefined;
+    this.locked.set(false);
   }
 }

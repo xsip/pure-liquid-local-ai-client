@@ -62,22 +62,21 @@ export class AssetsController {
     name: 'chatId',
     description: 'ChatId the file belongs to',
   })
-  @ApiQuery({
-    name: 'userId',
-    description: 'User the file belongs to',
-  })
   @ApiOkResponse({ description: 'Binary image data with correct Content-Type' })
   @ApiNotFoundResponse({ description: 'File not found' })
   async getImageQuery(
+    @CurrentUser() user: User & { _id?: Types.ObjectId },
     @Param('filename')
     filename: string,
     @Query('chatId')
     chatId: string,
-    @Query('userId')
-    userId: string,
     @Res() res: Response,
   ) {
-    const blob = await this.assetService.getAsset(userId, chatId, filename);
+    const blob = await this.assetService.getAsset(
+      user._id + '',
+      chatId,
+      filename,
+    );
 
     // Validate stored MIME type
     const allowed = /^image\/(jpeg|jpg|png|webp|gif|avif)$/;

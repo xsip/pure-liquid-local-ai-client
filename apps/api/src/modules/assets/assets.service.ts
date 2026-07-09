@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { AssetRole, AssetBlob, AssetBlobDocument } from './asset-blob.schema';
-import { DeleteResult, Model } from 'mongoose';
+import { DeleteResult, Model, Types } from 'mongoose';
+import { ChatMetadataService } from '../chat-metadata/chat-metadata.service';
 
 @Injectable()
 export class AssetsService {
   constructor(
     @InjectModel(AssetBlob.name)
     private readonly assetBlobModel: Model<AssetBlobDocument>,
+    private readonly chatMetadataService: ChatMetadataService,
   ) {}
 
   async setAssetVisibility(
@@ -43,12 +45,17 @@ export class AssetsService {
       throw new NotFoundException();
     }
 
+    // Access is granted to the owner as well as anyone the chat has been
+    // shared with, so resolve the blob by chat + filename only and defer
+    // the authorization check to ChatMetadataService (owner-or-shared).
+    await this.chatMetadataService.findOne(new Types.ObjectId(userId), chatId);
+
     const projection = thumbnail
       ? { data: 0 } // exclude full image
       : {};
 
     const blob = await this.assetBlobModel
-      .findOne({ userId, chatId, filename }, projection)
+      .findOne({ chatId, filename }, projection)
       .exec();
 
     if (!blob) {

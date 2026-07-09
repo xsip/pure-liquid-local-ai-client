@@ -58,6 +58,9 @@ export class ChatService {
   readonly streaming = signal(false);
   readonly chatMessages = signal<ChatMessage[]>([]);
   readonly currentChatId = signal<string | null>(null);
+  /** Always false — Shared Chats locking is only wired into the active Chat
+   * Completions path; kept here purely for `activeChat`'s union type parity. */
+  readonly locked = signal(false);
 
   private readonly lastUserInput = signal<string>('');
   private sub?: Subscription;

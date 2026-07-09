@@ -35,6 +35,18 @@ export interface ChatMetadataDto {
     lastMessageSentAt: string;
     useInvoke?: boolean;
     invokeAiModelToUse?: ChatMetadataDto.InvokeAiModelToUseEnum;
+    /**
+     * ObjectIds of users granted access to this chat
+     */
+    sharedWith?: Array<string>;
+    /**
+     * Usernames of users in sharedWith, same order/index — resolved server-side
+     */
+    sharedWithUsernames?: Array<string>;
+    /**
+     * True while a prompt is currently streaming for this chat
+     */
+    locked?: boolean;
 }
 export namespace ChatMetadataDto {
     export const ClientEnum = {

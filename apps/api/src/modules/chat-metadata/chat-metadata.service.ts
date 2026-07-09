@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -21,6 +22,7 @@ import {
   AssetBlob,
   AssetBlobDocument,
 } from '../assets/asset-blob.schema';
+import { User, UserDocument } from '../auth/user.schema';
 
 @Injectable()
 export class ChatMetadataService {
@@ -33,6 +35,8 @@ export class ChatMetadataService {
     private readonly chatModel: Model<ChatDocument>,
     @InjectModel(AssetBlob.name)
     private readonly assetBlobModel: Model<AssetBlobDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
   ) {}
 
   // ── Create ────────────────────────────────────────────────────────────────
@@ -54,11 +58,12 @@ export class ChatMetadataService {
   // ── Read all (for user) ───────────────────────────────────────────────────
 
   async findAll(userId: Types.ObjectId): Promise<ChatMetadataDocument[]> {
-    return this.metaModel
-      .find({ userId })
+    const docs = await this.metaModel
+      .find({ $or: [{ userId }, { sharedWith: userId }] })
       .select('-cryptoKey')
       .sort({ createdAt: -1 })
       .exec();
+    return this.attachSharedUsernames(docs);
   }
 
   // ── Read one ──────────────────────────────────────────────────────────────
@@ -70,8 +75,9 @@ export class ChatMetadataService {
     this.assertObjectId(id);
     const doc = await this.metaModel.findById(id).exec();
     if (!doc) throw new NotFoundException(`ChatMetadata ${id} not found`);
-    this.assertOwner(userId, doc);
-    return doc;
+    this.assertAccess(userId, doc);
+    const [withUsernames] = await this.attachSharedUsernames([doc]);
+    return withUsernames;
   }
 
   // ── Update ────────────────────────────────────────────────────────────────
@@ -204,6 +210,97 @@ export class ChatMetadataService {
     return (doc._id as Types.ObjectId).toHexString();
   }
 
+  // ── Sharing ───────────────────────────────────────────────────────────────
+
+  async shareChat(
+    ownerId: Types.ObjectId,
+    id: string,
+    username: string,
+  ): Promise<ChatMetadataDocument> {
+    this.assertObjectId(id);
+    const doc = await this.metaModel.findById(id).exec();
+    if (!doc) throw new NotFoundException(`ChatMetadata ${id} not found`);
+    this.assertOwner(ownerId, doc);
+
+    const target = await this.userModel
+      .findOne({ username: username.trim().toLowerCase() })
+      .exec();
+    if (!target) throw new NotFoundException(`User "${username}" not found`);
+    if (target._id.equals(ownerId)) {
+      throw new BadRequestException('You cannot share a chat with yourself');
+    }
+
+    const alreadyShared = doc.sharedWith?.some((id) => id.equals(target._id));
+    if (!alreadyShared) {
+      doc.sharedWith = [...(doc.sharedWith ?? []), target._id];
+      await doc.save();
+    }
+
+    const [withUsernames] = await this.attachSharedUsernames([doc]);
+    this.logger.log(`Shared ChatMetadata id=${id} with user=${target._id}`);
+    return withUsernames;
+  }
+
+  async unshareChat(
+    ownerId: Types.ObjectId,
+    id: string,
+    targetUserId: string,
+  ): Promise<ChatMetadataDocument> {
+    this.assertObjectId(id);
+    const doc = await this.metaModel.findById(id).exec();
+    if (!doc) throw new NotFoundException(`ChatMetadata ${id} not found`);
+    this.assertOwner(ownerId, doc);
+
+    doc.sharedWith = (doc.sharedWith ?? []).filter(
+      (uid) => !uid.equals(targetUserId),
+    );
+    await doc.save();
+
+    const [withUsernames] = await this.attachSharedUsernames([doc]);
+    this.logger.log(`Unshared ChatMetadata id=${id} from user=${targetUserId}`);
+    return withUsernames;
+  }
+
+  /**
+   * Internal, unguarded update used by the streaming code path (lock/touch).
+   * Access is assumed to have already been checked via `findOne` earlier in
+   * that call path — this never runs standalone from a controller route.
+   */
+  async touch(
+    id: string,
+    patch: Partial<Pick<ChatMetadata, 'lastMessageSentAt' | 'locked'>>,
+  ): Promise<void> {
+    await this.metaModel.findByIdAndUpdate(id, patch).exec();
+  }
+
+  private async attachSharedUsernames(
+    docs: ChatMetadataDocument[],
+  ): Promise<ChatMetadataDocument[]> {
+    const allIds = docs.flatMap((d) => d.sharedWith ?? []);
+    if (allIds.length === 0) return docs;
+
+    const users = await this.userModel
+      .find({ _id: { $in: allIds } })
+      .select('username')
+      .lean()
+      .exec();
+    const usernameById = new Map(
+      users.map((u) => [u._id.toString(), u.username]),
+    );
+
+    for (const doc of docs) {
+      const usernames = (doc.sharedWith ?? []).map(
+        (uid) => usernameById.get(uid.toString()) ?? 'unknown',
+      );
+      // Plain property assignment on a Mongoose document is invisible to
+      // toJSON()/toObject() (only schema paths + virtuals are serialized) —
+      // `.set(..., { strict: false })` stores it in `_doc` so it actually
+      // survives the HTTP response.
+      doc.set('sharedWithUsernames', usernames, { strict: false });
+    }
+    return docs;
+  }
+
   // ── Guards ────────────────────────────────────────────────────────────────
 
   private assertOwner(
@@ -213,6 +310,21 @@ export class ChatMetadataService {
     const uId =
       typeof userId !== 'string' ? new Types.ObjectId(userId) : userId;
     if (!doc.userId.equals(uId)) {
+      throw new ForbiddenException(
+        'You do not have access to this chat metadata',
+      );
+    }
+  }
+
+  private assertAccess(
+    userId: Types.ObjectId | string,
+    doc: ChatMetadataDocument,
+  ): void {
+    const uId =
+      typeof userId !== 'string' ? new Types.ObjectId(userId) : userId;
+    const isOwner = doc.userId.equals(uId);
+    const isShared = (doc.sharedWith ?? []).some((sid) => sid.equals(uId));
+    if (!isOwner && !isShared) {
       throw new ForbiddenException(
         'You do not have access to this chat metadata',
       );

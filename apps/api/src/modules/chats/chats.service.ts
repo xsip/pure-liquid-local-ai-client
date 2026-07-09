@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Chat, ChatDocument, ChatEntryDto } from './chat.schema';
@@ -18,12 +13,14 @@ import {
   ChatClient,
   ChatMetadata,
 } from '../chat-metadata/chat-metadata.schema';
+import { User, UserDocument } from '../auth/user.schema';
 @Injectable()
 export class ChatsService {
   private readonly logger = new Logger(ChatsService.name);
 
   constructor(
     @InjectModel(Chat.name) private readonly chatModel: Model<ChatDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly chatMetadataService: ChatMetadataService,
   ) {}
 
@@ -110,11 +107,8 @@ export class ChatsService {
 
     if (!latest) return [];
 
-    if (!latest.userId.equals(userId)) {
-      throw new ForbiddenException(
-        'You do not have access to this chat session',
-      );
-    }
+    // Throws ForbiddenException unless the caller is the owner or a shared user.
+    await this.chatMetadataService.findOne(userId, internalChatId);
 
     return (latest.messages as Record<string, unknown>[]) ?? [];
   }
@@ -137,12 +131,8 @@ export class ChatsService {
 
     if (!latest) return null; // brand-new session, no previous response
 
-    // Entry exists — enforce ownership
-    if (!latest.userId.equals(userId)) {
-      throw new ForbiddenException(
-        'You do not have access to this chat session',
-      );
-    }
+    // Entry exists — enforce access (owner or shared user)
+    await this.chatMetadataService.findOne(userId, internalChatId);
 
     return (
       (latest.response as ChatResponseDto).response_id ??
@@ -167,26 +157,38 @@ export class ChatsService {
 
     if (entries.length === 0) return [];
 
-    if (!entries[0].userId.equals(userId)) {
-      throw new ForbiddenException(
-        'You do not have access to this chat session',
-      );
-    }
-
+    // Throws ForbiddenException/NotFoundException unless the caller is the
+    // owner or a shared user — the query above already returns entries
+    // written by *any* user who has access to this session.
     const chatMeta = await this.chatMetadataService.findOne(
       userId,
       internalChatId,
     );
 
+    const distinctUserIds = [
+      ...new Set(entries.map((e) => e.userId.toString())),
+    ];
+    const users = await this.userModel
+      .find({ _id: { $in: distinctUserIds } })
+      .select('username')
+      .lean()
+      .exec();
+    const usernameById = new Map(
+      users.map((u) => [u._id.toString(), u.username]),
+    );
+
     return entries.map((e) => {
+      const username = usernameById.get(e.userId.toString());
+
       // Chat Completions entries carry their own `messages[]` array and have
       // no Responses-API-shaped `request.input` to decrypt — pass through.
       if (e.messages) {
-        return e as unknown as ChatEntryDto;
+        return { ...e, username } as unknown as ChatEntryDto;
       }
 
       return {
         ...e,
+        username,
         request: {
           ...e.request,
           input:

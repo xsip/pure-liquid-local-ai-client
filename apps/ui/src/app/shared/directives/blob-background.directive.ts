@@ -108,8 +108,8 @@ export class BlobBackgroundDirective implements AfterViewInit, OnDestroy {
     // Ensure existing children stack above the canvas
     Array.from(host.children).forEach((child) => {
       if (child !== this.canvas) {
-        this.renderer.setStyle(child, 'position', 'relative');
-        this.renderer.setStyle(child, 'z-index', '1');
+        //this.renderer.setStyle(child, 'position', 'relative');
+        // this.renderer.setStyle(child, 'z-index', '1');
       }
     });
 

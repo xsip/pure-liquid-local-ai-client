@@ -34,6 +34,7 @@ import {
   heroLink,
   heroDocument,
   heroXMark,
+  heroLockClosed,
 } from '@ng-icons/heroicons/outline';
 import { ChatService } from './chat.service';
 import { Observable, of, Subject, Subscription, switchMap, take } from 'rxjs';
@@ -53,7 +54,9 @@ export type { AppendedFile };
     MarkdownPipe,
     NgIconComponent,
   ],
-  viewProviders: [provideIcons({ heroPencilSquare, heroEye, heroLink, heroDocument, heroXMark })],
+  viewProviders: [
+    provideIcons({ heroPencilSquare, heroEye, heroLink, heroDocument, heroXMark, heroLockClosed }),
+  ],
   styles: [
     `
       .md-editor-wrap {
@@ -194,9 +197,21 @@ export type { AppendedFile };
           </button>
         </div>
 
+        @if (locked()) {
+          <div
+            class="flex items-center gap-1.5 px-3 py-1.5 mb-2 text-xs rounded-xl border border-warn text-warn bg-warn/10"
+          >
+            <ng-icon name="heroLockClosed" class="w-3.5 h-3.5 shrink-0" />
+            <span>{{ 'chatInput.locked' | translate }}</span>
+          </div>
+        }
+
         <!-- Action row -->
         <div class="flex items-center gap-2 flex-wrap">
-          <app-send-button [disabled]="form().invalid || streaming()" [streaming]="streaming()" />
+          <app-send-button
+            [disabled]="form().invalid || streaming() || locked()"
+            [streaming]="streaming()"
+          />
 
           <app-reasoning-dropdown
             [reasoning]="reasoning()"
@@ -207,7 +222,7 @@ export type { AppendedFile };
           <button
             type="button"
             (click)="fileInput.click()"
-            [disabled]="streaming()"
+            [disabled]="streaming() || locked()"
             class="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-xl select-none disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all duration-150"
             [class]="
               appendedFiles().length > 0
@@ -289,6 +304,7 @@ export class OpenAiChatInputComponent implements AfterViewInit, AfterViewChecked
 
   readonly form = input.required<FormGroup>();
   readonly streaming = input.required<boolean>();
+  readonly locked = input<boolean>(false);
   readonly reasoning = input.required<
     ChatRequestDto.ReasoningEnum | ReasoningDto.EffortEnum | undefined
   >();

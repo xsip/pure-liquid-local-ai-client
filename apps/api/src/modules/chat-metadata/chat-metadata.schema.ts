@@ -115,6 +115,14 @@ export class ChatMetadata {
   })
   invokeAiModelToUse?: InvokeAiModel;
 
+  /** Other users granted read/write access to this chat */
+  @Prop({ required: false, default: [], type: [Types.ObjectId], ref: 'User' })
+  sharedWith: Types.ObjectId[];
+
+  /** True while a prompt is currently streaming — blocks new messages from anyone */
+  @Prop({ required: false, default: false, type: Boolean })
+  locked: boolean;
+
   // `createdAt` / `updatedAt` injected automatically
 }
 
@@ -216,4 +224,22 @@ export class ChatMetadataDto {
     enum: InvokeAiModel,
   })
   invokeAiModelToUse?: InvokeAiModel;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'ObjectIds of users granted access to this chat',
+  })
+  sharedWith?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Usernames of users in sharedWith, same order/index — resolved server-side',
+  })
+  sharedWithUsernames?: string[];
+
+  @ApiPropertyOptional({
+    description: 'True while a prompt is currently streaming for this chat',
+  })
+  locked?: boolean;
 }

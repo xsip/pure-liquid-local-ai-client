@@ -131,6 +131,47 @@ export class ChatMetadataController {
     return this.chatMetadataService.remove(userId, id);
   }
 
+  // ── POST /chats-metadata/:id/share ───────────────────────────────────────
+
+  @Post(':id/share')
+  @ApiOperation({
+    summary: 'Grant another user (by username) read/write access to this chat',
+    operationId: 'shareChatMetadata',
+  })
+  @ApiParam({ name: 'id', description: 'ChatMetadata ObjectId' })
+  @ApiOkResponse({ type: ChatMetadataDto })
+  @ApiNotFoundResponse({ description: 'Not found, or target user not found' })
+  @ApiForbiddenResponse({ description: 'Only the owner can share a chat' })
+  shareChat(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: { username: string },
+  ) {
+    const userId = (user as any)._id as Types.ObjectId;
+    return this.chatMetadataService.shareChat(userId, id, body.username);
+  }
+
+  // ── DELETE /chats-metadata/:id/share/:userId ─────────────────────────────
+
+  @Delete(':id/share/:userId')
+  @ApiOperation({
+    summary: 'Revoke a shared user\'s access to this chat',
+    operationId: 'unshareChatMetadata',
+  })
+  @ApiParam({ name: 'id', description: 'ChatMetadata ObjectId' })
+  @ApiParam({ name: 'userId', description: 'ObjectId of the user to revoke' })
+  @ApiOkResponse({ type: ChatMetadataDto })
+  @ApiNotFoundResponse({ description: 'Not found' })
+  @ApiForbiddenResponse({ description: 'Only the owner can revoke access' })
+  unshareChat(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    const userId = (user as any)._id as Types.ObjectId;
+    return this.chatMetadataService.unshareChat(userId, id, targetUserId);
+  }
+
   @Post('upload-file/:chatId')
   @ApiOperation({
     operationId: 'uploadFile',

@@ -188,6 +188,8 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
             (chatDeleted)="deleteChat($event)"
             (openChatSettings)="onOpenChatSettings($event)"
             (saveCryptoSettings)="onSaveCryptoSettings($event)"
+            (shareChat)="onShareChat($event)"
+            (unshareChat)="onUnshareChat($event)"
             @sidebarAnim
             (@sidebarAnim.done)="clearAnimTransform($event)"
           />
@@ -432,6 +434,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
               #chatInput
               [form]="activeChat.form"
               [streaming]="activeChat.streaming()"
+              [locked]="activeChat.locked()"
               [reasoning]="$any(modelService.reasoning())"
               [modelReasoningCap]="modelService.modelReasoningCap()"
               (submitted)="submit()"
@@ -605,6 +608,13 @@ export class OpenAiApi implements OnDestroy, OnInit {
         this.useCompletions.set(meta.openAiEndpointPreference === 'COMPLETION');
         this.activeChat.currentChatId.set(chatId);
         this.loadChatHistory(chatId);
+        this.chatCompletionsService.updateLockPolling(
+          chatId,
+          (meta.sharedWith?.length ?? 0) > 0,
+          () => {
+            if (this.useCompletions()) this.loadCompletionsChatHistory(chatId);
+          },
+        );
 
         const reasoningValue = meta.reasoningMode as ReasoningDto.EffortEnum | undefined;
         const match = this.modelService.models()?.find((m) => m.id === meta.usedModel);
@@ -797,6 +807,14 @@ export class OpenAiApi implements OnDestroy, OnInit {
           const text = this.extractCompletionsMessageText(m.content);
           if (text) messages.push({ role: 'user', text, date });
         } else if (m.role === 'assistant') {
+          if (m.reasoning_content) {
+            messages.push({
+              role: 'reasoning',
+              text: m.reasoning_content,
+              collapsed: true,
+              date,
+            });
+          }
           if (Array.isArray(m.tool_calls)) {
             for (const tc of m.tool_calls) {
               messages.push({
@@ -879,6 +897,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.chatService.currentChatId.set(null);
     this.chatCompletionsService.chatMessages.set([]);
     this.chatCompletionsService.currentChatId.set(null);
+    this.chatCompletionsService.stopLockPolling();
     this.useCompletions.set(true);
     this.router.navigate(['/chat-openai']);
     // Reset new-chat options to defaults
@@ -1043,6 +1062,42 @@ export class OpenAiApi implements OnDestroy, OnInit {
           );
         },
       });
+  }
+
+  onShareChat({ chatId, username }: { chatId: string; username: string }): void {
+    this.chatMetaService.shareChatMetadata(chatId, username).subscribe({
+      next: (updated) => {
+        this.chatList.update((list) =>
+          list.map((c) => (c._id === chatId ? { ...c, ...updated } : c)),
+        );
+        this.chatSidebarRef?.updateShareResult(
+          updated.sharedWith ?? [],
+          updated.sharedWithUsernames ?? [],
+        );
+      },
+      error: (err) => {
+        this.chatSidebarRef?.setShareError(
+          err?.error?.message ?? `User "${username}" not found`,
+        );
+      },
+    });
+  }
+
+  onUnshareChat({ chatId, userId }: { chatId: string; userId: string }): void {
+    this.chatMetaService.unshareChatMetadata(chatId, userId).subscribe({
+      next: (updated) => {
+        this.chatList.update((list) =>
+          list.map((c) => (c._id === chatId ? { ...c, ...updated } : c)),
+        );
+        this.chatSidebarRef?.updateShareResult(
+          updated.sharedWith ?? [],
+          updated.sharedWithUsernames ?? [],
+        );
+      },
+      error: (err) => {
+        this.chatSidebarRef?.setShareError(err?.error?.message ?? 'Failed to revoke access');
+      },
+    });
   }
 
   // ── Utilities ─────────────────────────────────────────────────────────────

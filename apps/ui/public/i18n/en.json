@@ -32,7 +32,13 @@
     "deleteConfirm": "Delete this chat?",
     "delete": "Delete",
     "cancel": "Cancel",
-    "encrypted": "Encrypted"
+    "encrypted": "Encrypted",
+    "share": "Share",
+    "shareChat": "Share Chat",
+    "shareUsernamePlaceholder": "Username…",
+    "sharedWith": "Shared with",
+    "revokeAccess": "Revoke access",
+    "notSharedYet": "Not shared with anyone yet"
   },
   "chatSettings": {
     "title": "Chat Settings",
@@ -61,7 +67,8 @@
     "promptRequired": "Prompt is required.",
     "hint": "Enter to send · Shift+Enter for newline",
     "attach": "Attach",
-    "attachedFiles": "Attached files"
+    "attachedFiles": "Attached files",
+    "locked": "Locked — someone else is generating a response"
   },
   "sendButton": {
     "send": "Send",

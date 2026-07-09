@@ -19,7 +19,9 @@ import {
   heroPaperClip,
   heroPencilSquare,
   heroPlus,
-  heroTrash
+  heroTrash,
+  heroUserPlus,
+  heroXMark
 } from '@ng-icons/heroicons/outline';
 import { BadgeComponent, IconButtonComponent } from '../../shared';
 import { AuthImageMountDirective, CodeBlockMountDirective, FileCardMountDirective } from './markdown.pipe';
@@ -86,6 +88,8 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
       heroTrash,
       heroPaperClip,
       heroBackspace,
+      heroUserPlus,
+      heroXMark,
     }),
   ],
   template: `
@@ -334,6 +338,18 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
           {{ 'sidebar.settings' | translate }}
         </button>
 
+        <button
+          type="button"
+          (click)="openShare(menu.chat)"
+          class="w-full flex items-center gap-2.5 px-3 py-1.5 mb-1 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors text-left"
+        >
+          <ng-icon name="heroUserPlus" class="w-3.5 h-3.5 shrink-0 opacity-60" />
+          {{ 'sidebar.share' | translate }}
+          @if (menu.chat.sharedWithUsernames?.length) {
+            <ui-badge [variant]="'accent'">{{ menu.chat.sharedWithUsernames?.length }}</ui-badge>
+          }
+        </button>
+
         <div class="border-t border-border-subtle mx-2 mb-1"></div>
 
         @if (!ctxConfirmDelete()) {
@@ -382,6 +398,74 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
         (closed)="closeSettings()"
       />
     }
+
+    <!-- Share dialog -->
+    @if (shareModal(); as modal) {
+      <div class="fixed inset-0 z-40 bg-black/40" (click)="closeShare()"></div>
+      <div
+        class="fixed z-50 w-80 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-raised border border-border-default rounded-2xl overflow-hidden"
+        style="box-shadow: var(--shadow-xl);"
+      >
+        <div
+          class="px-4 py-3 text-xs text-text-muted uppercase tracking-widest border-b border-border-subtle truncate font-semibold flex items-center justify-between"
+        >
+          <span>{{ 'sidebar.shareChat' | translate }} — {{ modal.chatName }}</span>
+          <button type="button" (click)="closeShare()" class="text-text-muted hover:text-text-primary">
+            <ng-icon name="heroXMark" class="w-4 h-4" />
+          </button>
+        </div>
+
+        <div class="p-4 flex flex-col gap-3">
+          <div class="flex gap-1.5">
+            <input
+              #shareUsernameInputEl
+              type="text"
+              [value]="shareUsername()"
+              (input)="shareUsername.set($any($event.target).value); shareError.set(null)"
+              (keydown.enter)="submitShare(modal.chatId)"
+              class="flex-1 bg-surface-base border border-border-default focus:border-accent rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none transition-colors"
+              [placeholder]="'sidebar.shareUsernamePlaceholder' | translate"
+            />
+            <button
+              type="button"
+              (click)="submitShare(modal.chatId)"
+              [disabled]="!shareUsername().trim()"
+              class="px-3 py-1.5 text-xs bg-accent hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-semibold"
+            >
+              {{ 'sidebar.share' | translate }}
+            </button>
+          </div>
+          @if (shareError(); as err) {
+            <span class="text-[10px] text-error-text">{{ err }}</span>
+          }
+
+          @if (modal.sharedWithUsernames.length) {
+            <div class="flex flex-col gap-1 pt-1 border-t border-border-subtle">
+              <span class="text-[10px] text-text-muted uppercase tracking-widest pt-2">{{
+                'sidebar.sharedWith' | translate
+              }}</span>
+              @for (username of modal.sharedWithUsernames; track username; let i = $index) {
+                <div
+                  class="flex items-center justify-between px-2 py-1.5 rounded-lg bg-surface-base border border-border-default text-xs"
+                >
+                  <span class="text-text-primary truncate">{{ username }}</span>
+                  <button
+                    type="button"
+                    (click)="revokeShare(modal.chatId, modal.sharedWith[i])"
+                    class="text-text-muted hover:text-error-text shrink-0"
+                    [title]="'sidebar.revokeAccess' | translate"
+                  >
+                    <ng-icon name="heroXMark" class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              }
+            </div>
+          } @else {
+            <span class="text-[10px] text-text-muted">{{ 'sidebar.notSharedYet' | translate }}</span>
+          }
+        </div>
+      </div>
+    }
   `,
 })
 export class ChatSidebarComponent {
@@ -396,6 +480,8 @@ export class ChatSidebarComponent {
   readonly chatDeleted = output<string>();
   readonly openChatSettings = output<string>();
   readonly saveCryptoSettings = output<ChatSettingsSaveEvent>();
+  readonly shareChat = output<{ chatId: string; username: string }>();
+  readonly unshareChat = output<{ chatId: string; userId: string }>();
 
   @ViewChild('renameInput') renameInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('ctxRenameInput') ctxRenameInputRef?: ElementRef<HTMLInputElement>;
@@ -411,6 +497,15 @@ export class ChatSidebarComponent {
   readonly generatedFilesModalContent = signal<ChatMetadataDto | null>(null);
   readonly generatedFilesModelType = signal<'generated' | 'user' | null>(null);
   readonly settingsLoading = signal(false);
+
+  readonly shareModal = signal<{
+    chatId: string;
+    chatName: string;
+    sharedWith: string[];
+    sharedWithUsernames: string[];
+  } | null>(null);
+  readonly shareUsername = signal('');
+  readonly shareError = signal<string | null>(null);
 
   chatNameById(chatId: string): string {
     return this.chatList().find((c) => c._id === chatId)?.name ?? 'Chat';
@@ -512,6 +607,46 @@ export class ChatSidebarComponent {
   closeSettings(): void {
     this.settingsModal.set(null);
     this.settingsLoading.set(false);
+  }
+
+  openShare(chat: ChatMetadataDto): void {
+    this.closeCtxMenu();
+    this.shareUsername.set('');
+    this.shareError.set(null);
+    this.shareModal.set({
+      chatId: chat._id!,
+      chatName: chat.name ?? 'Chat',
+      sharedWith: chat.sharedWith ?? [],
+      sharedWithUsernames: chat.sharedWithUsernames ?? [],
+    });
+  }
+
+  closeShare(): void {
+    this.shareModal.set(null);
+    this.shareUsername.set('');
+    this.shareError.set(null);
+  }
+
+  submitShare(chatId: string): void {
+    const username = this.shareUsername().trim();
+    if (!username) return;
+    this.shareChat.emit({ chatId, username });
+  }
+
+  revokeShare(chatId: string, userId: string): void {
+    this.unshareChat.emit({ chatId, userId });
+  }
+
+  /** Called by the parent after a share/unshare API call resolves. */
+  updateShareResult(sharedWith: string[], sharedWithUsernames: string[]): void {
+    this.shareModal.update((m) => (m ? { ...m, sharedWith, sharedWithUsernames } : null));
+    this.shareUsername.set('');
+    this.shareError.set(null);
+  }
+
+  /** Called by the parent when a share/unshare API call fails. */
+  setShareError(message: string): void {
+    this.shareError.set(message);
   }
 
   closeGeneratedFiles(): void {
