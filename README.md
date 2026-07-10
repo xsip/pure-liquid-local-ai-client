@@ -308,7 +308,7 @@ Then log in at `POST /auth/login` to receive a JWT.
 
 ## MCP Tool Integration
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-preview-light.png)
+![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-preview-dark.png)
 
 The NestJS backend plays **both** MCP roles at once:
 
