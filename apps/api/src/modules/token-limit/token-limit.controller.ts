@@ -23,9 +23,12 @@ import {
   UpdateTokenLimitConfigDto,
 } from './dto/token-limit-config.dto';
 import { SubscriptionType } from '../auth/user.schema';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '../auth/roles.decorator';
 
 @ApiTags('Token Limit Config')
 @ApiBearerAuth()
+@Roles(Role.Admin)
 @Controller('token-limit-configs')
 export class TokenLimitController {
   constructor(private readonly tokenLimitService: TokenLimitService) {}

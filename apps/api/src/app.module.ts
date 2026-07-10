@@ -17,6 +17,7 @@ import { HttpModule } from '@nestjs/axios';
 import { AssetsModule } from './modules/assets/assets.module';
 import { toolsTimeoutMiddleware } from './tools/tools-timeout.middleware';
 import { ToolsHelperService } from './tools/tools-helper.service';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ToolsHelperService } from './tools/tools-helper.service';
     ChatsModule,
     ChatMetadataModule,
     TokenLimitModule,
+    AdminModule,
     InvokeModule.forRoot('http://127.0.0.1:9090'),
   ],
   controllers: [],

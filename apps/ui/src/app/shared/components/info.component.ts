@@ -2,13 +2,20 @@ import { animate, style, transition, trigger, query, stagger } from '@angular/an
 import { Component, inject, OnInit, output, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { AuthService, MeDto, ModelDto, OpenAIService } from '../../client';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { DarkModeToggleComponent } from '../../shared/components/ui/dark-mode-toggle.component';
 import { BadgeComponent } from '../../shared/components/ui/badge.component';
 import { ButtonComponent } from '../../shared/components/ui/button.component';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroArrowPath, heroUser, heroChartBar, heroComputerDesktop } from '@ng-icons/heroicons/outline';
+import {
+  heroArrowPath,
+  heroUser,
+  heroChartBar,
+  heroComputerDesktop,
+  heroCog6Tooth,
+} from '@ng-icons/heroicons/outline';
 
 @Component({
   selector: 'app-info',
@@ -34,6 +41,7 @@ import { heroArrowPath, heroUser, heroChartBar, heroComputerDesktop } from '@ng-
   ],
   imports: [
     CommonModule,
+    RouterLink,
     TranslateModule,
     SpinnerComponent,
     DarkModeToggleComponent,
@@ -41,7 +49,9 @@ import { heroArrowPath, heroUser, heroChartBar, heroComputerDesktop } from '@ng-
     ButtonComponent,
     NgIconComponent,
   ],
-  viewProviders: [provideIcons({ heroArrowPath, heroUser, heroChartBar, heroComputerDesktop })],
+  viewProviders: [
+    provideIcons({ heroArrowPath, heroUser, heroChartBar, heroComputerDesktop, heroCog6Tooth }),
+  ],
   template: `
     <div class="flex flex-col h-full overflow-y-auto p-4 gap-4 text-xs">
       <!-- Theme row -->
@@ -117,6 +127,20 @@ import { heroArrowPath, heroUser, heroChartBar, heroComputerDesktop } from '@ng-
           </div>
         }
       </section>
+
+      @if (user()?.role === 'admin') {
+        <a
+          routerLink="/admin"
+          class="flex items-center justify-between px-3 py-2.5 rounded-2xl border border-border-default bg-surface-raised hover:border-border-strong hover:bg-surface-overlay shadow-depth-sm hover-lift transition-colors"
+          @rowAnim
+        >
+          <span class="flex items-center gap-2 font-semibold text-text-primary">
+            <ng-icon name="heroCog6Tooth" class="w-3.5 h-3.5 text-text-muted" />
+            Admin CMS
+          </span>
+          <ui-badge variant="warn">admin</ui-badge>
+        </a>
+      }
 
       <!-- Token usage card -->
       <section

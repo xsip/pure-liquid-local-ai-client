@@ -11,7 +11,7 @@ export class CreateTokenLimitConfigDto {
   @ApiProperty({ example: 9000 })
   @IsInt()
   @IsPositive()
-  tokensPerIntervall: number;
+  tokensPerInterval: number;
 
   @ApiProperty({ enum: SubscriptionType, example: SubscriptionType.BASIC })
   @IsEnum(SubscriptionType)

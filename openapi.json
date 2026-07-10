@@ -1132,6 +1132,176 @@
         ]
       }
     },
+    "/admin/users": {
+      "get": {
+        "operationId": "adminListUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all users",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "operationId": "adminCreateUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new user",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/admin/users/{id}": {
+      "get": {
+        "operationId": "adminGetUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a user by id",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "patch": {
+        "operationId": "adminUpdateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a user",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "delete": {
+        "operationId": "adminDeleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a user",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/admin/users/{id}/reset-tokens": {
+      "post": {
+        "operationId": "adminResetUserTokens",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset a user's token usage counter",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/invoke/test": {
       "get": {
         "operationId": "testGenerateImage",
@@ -1262,7 +1432,7 @@
             "type": "number",
             "example": 1
           },
-          "tokensPerIntervall": {
+          "tokensPerInterval": {
             "type": "number",
             "example": 9000
           },
@@ -1277,7 +1447,7 @@
         },
         "required": [
           "minutesTillReset",
-          "tokensPerIntervall",
+          "tokensPerInterval",
           "subscription"
         ]
       },
@@ -1288,7 +1458,7 @@
             "type": "number",
             "example": 1
           },
-          "tokensPerIntervall": {
+          "tokensPerInterval": {
             "type": "number",
             "example": 9000
           },
@@ -3553,6 +3723,67 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "CreateAdminUserDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "default": "user"
+          },
+          "subscription": {
+            "type": "string",
+            "enum": [
+              "free",
+              "basic"
+            ],
+            "default": "free"
+          },
+          "isActivated": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "UpdateAdminUserDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "New password — leave unset to keep the current one"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ]
+          },
+          "subscription": {
+            "type": "string",
+            "enum": [
+              "free",
+              "basic"
+            ]
+          },
+          "isActivated": {
+            "type": "boolean"
+          }
+        }
       }
     }
   }

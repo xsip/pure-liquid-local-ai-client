@@ -2,7 +2,9 @@ import { Routes } from '@angular/router';
 import { OpenAiApi } from './routes/openai-api';
 import { Login } from './routes/login';
 import { ReadmeComponent } from './routes/readme';
+import { AdminCms } from './routes/admin';
 import { authGuard } from './auth.guard';
+import { adminGuard } from './admin.guard';
 
 export const routes: Routes = [
   {
@@ -27,6 +29,12 @@ export const routes: Routes = [
     runGuardsAndResolvers: 'paramsChange',
     canActivate: [authGuard],
     component: OpenAiApi,
+  },
+  {
+    path: 'admin',
+    pathMatch: 'full',
+    canActivate: [authGuard, adminGuard],
+    component: AdminCms,
   },
   {
     path: 'login',
