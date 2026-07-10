@@ -4,6 +4,7 @@ import { CommonModule, Location } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  AuthService,
   ChatMetadataDto,
   ChatMetadataService,
   ChatRequestDto,
@@ -446,7 +447,11 @@ export class OpenAiApi implements OnDestroy, OnInit {
   private readonly router = inject(Router);
   private readonly chatsApi = inject(ChatsService);
   private readonly chatMetaService = inject(ChatMetadataService);
+  private readonly authService = inject(AuthService);
   readonly location = inject(Location);
+
+  /** Username of the signed-in user, used to label their own messages as "You" in shared chats. */
+  private currentUsername?: string;
 
   @ViewChild('messageContainer') private messageContainer?: ElementRef<HTMLElement>;
   @ViewChild('chatInput') private chatInputRef?: OpenAiChatInputComponent;
@@ -481,6 +486,10 @@ export class OpenAiApi implements OnDestroy, OnInit {
   readonly newChatNameMode = signal<ChatNameMode>('ai');
 
   private chatId?: string;
+  /** Whether the currently open chat is shared with other users. */
+  private isSharedChat = false;
+  /** Model used by the currently open chat, shown above AI messages. */
+  private usedModel?: string;
 
   constructor() {
     effect(() => {
@@ -536,6 +545,9 @@ export class OpenAiApi implements OnDestroy, OnInit {
   ngOnInit(): void {
     this.loadChatList();
     this.modelService.loadModels();
+    this.authService.getMe().subscribe({
+      next: (me) => (this.currentUsername = me.username),
+    });
 
     const chatId = this.route.snapshot.paramMap.get('chatId');
     this.chatId = chatId ?? undefined;
@@ -556,6 +568,8 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.chatMetaService.getChatMetadata(chatId).subscribe({
       next: (meta) => {
         this.activeChat.currentChatId.set(chatId);
+        this.isSharedChat = (meta.sharedWith?.length ?? 0) > 0;
+        this.usedModel = meta.usedModel;
         this.loadCompletionsChatHistory(chatId);
         this.chatCompletionsService.updateLockPolling(
           chatId,
@@ -613,6 +627,17 @@ export class OpenAiApi implements OnDestroy, OnInit {
       const rawMessages: any[] = latest?.messages ?? [];
       const date = new Date(latest?.createdAt ?? Date.now());
 
+      // Entries are oldest-first snapshots of the rolling `messages` array, each stamped
+      // with the username of whoever submitted that turn. Map each raw message index to
+      // the username of the entry that first introduced it, so senders can be labeled
+      // in shared chats.
+      const entries = res as any[];
+      const senderByIndex = entries.flatMap((entry, i) => {
+        const prevLen = (entries[i - 1]?.messages as any[] | undefined)?.length ?? 0;
+        const entryLen = (entry?.messages as any[] | undefined)?.length ?? 0;
+        return Array<string | undefined>(Math.max(entryLen - prevLen, 0)).fill(entry?.username);
+      });
+
       // Index tool results by tool_call_id so they can be attached to their originating call.
       const toolResultsById = new Map<string, string>();
       for (const m of rawMessages) {
@@ -622,17 +647,21 @@ export class OpenAiApi implements OnDestroy, OnInit {
       }
 
       const messages: ChatMessage[] = [];
-      for (const m of rawMessages) {
+      rawMessages.forEach((m, index) => {
+        const username =
+          senderByIndex[index] === this.currentUsername || !this.isSharedChat
+            ? 'You'
+            : (senderByIndex[index] ?? 'You');
         if (m.role === 'user') {
           if (Array.isArray(m.content)) {
             for (const part of m.content) {
               if (part?.type === 'image_url' && part.image_url?.url) {
-                messages.push({ role: 'user', text: '', image: part.image_url.url, date });
+                messages.push({ role: 'user', text: '', image: part.image_url.url, date, username });
               }
             }
           }
           const text = this.extractCompletionsMessageText(m.content);
-          if (text) messages.push({ role: 'user', text, date });
+          if (text) messages.push({ role: 'user', text, date, username });
         } else if (m.role === 'assistant') {
           if (m.reasoning_content) {
             messages.push({
@@ -656,9 +685,9 @@ export class OpenAiApi implements OnDestroy, OnInit {
             }
           }
           const text = this.extractCompletionsMessageText(m.content);
-          if (text) messages.push({ role: 'ai', text, date });
+          if (text) messages.push({ role: 'ai', text, date, username: this.usedModel });
         }
-      }
+      });
 
       this.isLoadingMessages.set(false);
       this.chatCompletionsService.chatMessages.set(messages as any);

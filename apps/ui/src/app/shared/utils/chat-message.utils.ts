@@ -17,6 +17,9 @@ export interface ChatMessage {
   image?: string;
   file?: string;
   date?: Date;
+  username?: string;
+  /** Model name used to generate this AI message. */
+  usedModel?: string;
   stats?: string;
   streaming?: boolean;
   toolName?: string;

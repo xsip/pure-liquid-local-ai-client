@@ -23,7 +23,7 @@ import {
   heroUserPlus,
   heroXMark
 } from '@ng-icons/heroicons/outline';
-import { BadgeComponent, IconButtonComponent } from '../../shared';
+import { BadgeComponent, IconButtonComponent, TooltipDirective } from '../../shared';
 import { AuthImageMountDirective, CodeBlockMountDirective, FileCardMountDirective } from './markdown.pipe';
 import { ChatAttachmentsSidebarComponent } from '../../shared/components/chat-attachments-sidebar.component';
 import ClientEnum = CreateChatMetadataDto.ClientEnum;
@@ -77,6 +77,7 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
     AuthImageMountDirective,
     CodeBlockMountDirective,
     FileCardMountDirective,
+    TooltipDirective,
   ],
   viewProviders: [
     provideIcons({
@@ -220,6 +221,15 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
                   }
                   <div class="truncate font-medium leading-tight">{{ chat.name ?? 'Chat' }}</div>
                 </div>
+                @if (chat.usedModel) {
+                  <div
+                    class="text-text-muted mt-0.5 text-[10px] pl-1 truncate"
+                    [uiTooltip]="chat.usedModel"
+                    uiTooltipPosition="right"
+                  >
+                    {{ chat.usedModel }}
+                  </div>
+                }
                 @if (chat.lastMessageSentAt) {
                   <div class="text-text-muted mt-0.5 text-[10px] pl-1">
                     {{ chat.lastMessageSentAt | date: 'dd MMM, HH:mm' }}

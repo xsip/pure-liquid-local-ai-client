@@ -41,3 +41,6 @@ export {
 export type { AppendedFile }      from './utils/file.utils';
 
 export { readStoredTheme, applyTheme } from './utils/theme.utils';
+
+// ── Directives ─────────────────────────────────────────────────────────────
+export { TooltipDirective } from './directives/tooltip.directive';

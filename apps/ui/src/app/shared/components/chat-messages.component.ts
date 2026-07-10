@@ -133,6 +133,9 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
       @if (msg.role === 'user') {
         @if (msg.image) {
           <div class="flex flex-col items-end gap-1" @userMsgAnim>
+            @if (msg.username) {
+              <span class="text-[10px] text-text-muted font-medium mr-1">{{ msg.username }}</span>
+            }
             <div
               class="max-w-[75%] rounded-2xl rounded-br-sm overflow-hidden"
               style="background: var(--color-accent-subtle); border: 1px solid var(--color-accent-glow); box-shadow: var(--shadow-sm);"
@@ -147,6 +150,9 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
           </div>
         } @else if (msg.text) {
           <div class="flex flex-col items-end gap-1" @userMsgAnim>
+            @if (msg.username) {
+              <span class="text-[10px] text-text-muted font-medium mr-1">{{ msg.username }}</span>
+            }
             <div
               class="min-w-0 max-w-[75%] text-text-primary rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-relaxed overflow-hidden"
               style="background: var(--color-accent-subtle); border: 1px solid var(--color-accent-glow); box-shadow: var(--shadow-sm);"
@@ -446,6 +452,9 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
       } @else {
         <!-- AI message -->
         <div class="flex flex-col items-start gap-1.5" @msgAnim>
+          @if (msg.username) {
+            <span class="text-[10px] text-text-muted font-medium ml-8">{{ msg.username }}</span>
+          }
           <!-- Avatar -->
           <div class="flex items-start gap-2.5 min-w-0 w-full">
             <div

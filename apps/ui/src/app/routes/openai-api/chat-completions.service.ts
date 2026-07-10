@@ -31,6 +31,7 @@ export interface ChatMessage {
   toolFailed?: boolean;
   providerLabel?: string;
   collapsed?: boolean;
+  username?: string;
   itemId?: string; // track by OpenAI item id
 }
 
@@ -128,7 +129,7 @@ export class ChatCompletionsService {
       if (f.image_url) {
         this.chatMessages.update((msgs) => [
           ...msgs,
-          { role: 'user', text: '', image: f.image_url, date: new Date() },
+          { role: 'user', text: '', image: f.image_url, date: new Date(), username: 'You' },
         ]);
       }
     }
@@ -137,6 +138,7 @@ export class ChatCompletionsService {
       ...msgs,
       {
         role: 'user',
+        username: 'You',
         text:
           (appendedFiles
             ?.map((f) =>
@@ -254,7 +256,10 @@ export class ChatCompletionsService {
           copy[idx] = { ...copy[idx], text: copy[idx].text + chunk };
           return copy;
         }
-        return [...msgs, { role: 'ai', text: chunk, streaming: true, date: new Date() }];
+        return [
+          ...msgs,
+          { role: 'ai', text: chunk, streaming: true, date: new Date(), username: selectedModelId },
+        ];
       });
     });
 
