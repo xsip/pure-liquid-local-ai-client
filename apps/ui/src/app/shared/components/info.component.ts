@@ -75,7 +75,7 @@ import {
 
       <!-- User card -->
       <section
-        class="rounded-2xl border border-border-default bg-surface-raised overflow-hidden shadow-depth-sm hover-lift"
+        class="rounded-2xl overflow-visible border border-border-default bg-surface-raised shadow-depth-sm hover-lift"
         @sectionAnim
       >
         <div
@@ -144,7 +144,7 @@ import {
 
       <!-- Token usage card -->
       <section
-        class="rounded-2xl border border-border-default bg-surface-raised overflow-hidden shadow-depth-sm hover-lift"
+        class="rounded-2xl border border-border-default bg-surface-raised overflow-visible shadow-depth-sm hover-lift"
         @sectionAnim
       >
         <div
@@ -201,7 +201,7 @@ import {
 
       <!-- Models card -->
       <section
-        class="rounded-2xl border border-border-default bg-surface-raised overflow-hidden shadow-depth-sm hover-lift"
+        class="rounded-2xl border border-border-default bg-surface-raised overflow-visible shadow-depth-sm hover-lift"
         @sectionAnim
       >
         <div
