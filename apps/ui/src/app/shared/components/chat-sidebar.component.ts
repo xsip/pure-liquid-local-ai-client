@@ -295,9 +295,10 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
         (contextmenu)="$event.preventDefault(); closeCtxMenu()"
       ></div>
       <div
-        class="fixed z-50 w-52 bg-surface-raised border border-border-default rounded-2xl overflow-hidden py-1"
+        #ctxMenuEl
+        class="fixed z-50 w-52 max-h-[85vh] overflow-y-auto bg-surface-raised border border-border-default rounded-2xl py-1"
         @ctxMenuAnim
-        style="box-shadow: var(--shadow-xl); left: {{ menu.x }}px; top: {{ menu.y }}px;"
+        style="box-shadow: var(--shadow-xl);"
         [style.left.px]="menu.x"
         [style.top.px]="menu.y"
       >
@@ -378,7 +379,7 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
         @if (!ctxConfirmDelete()) {
           <button
             type="button"
-            (click)="ctxConfirmDelete.set(true)"
+            (click)="ctxConfirmDelete.set(true); reclampCtxMenuNextTick()"
             class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-error-text/70 hover:bg-error-bg hover:text-error-text active:scale-[0.98] text-left"
           >
             <ng-icon name="heroTrash" class="w-3.5 h-3.5 shrink-0" />
@@ -525,6 +526,7 @@ export class ChatSidebarComponent {
 
   @ViewChild('renameInput') renameInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('ctxRenameInput') ctxRenameInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('ctxMenuEl') private ctxMenuElRef?: ElementRef<HTMLDivElement>;
 
   readonly renamingChatId = signal<string | null>(null);
   readonly renameValue = signal('');
@@ -554,14 +556,33 @@ export class ChatSidebarComponent {
   onContextMenu(event: MouseEvent, chat: ChatMetadataDto): void {
     event.preventDefault();
     event.stopPropagation();
-    const menuW = 216,
-      menuH = 270;
-    const x = Math.min(event.clientX, window.innerWidth - menuW);
-    const y = Math.min(event.clientY, window.innerHeight - menuH);
     this.ctxConfirmDelete.set(false);
     this.ctxRenameValue.set(chat.name ?? '');
-    this.ctxMenu.set({ chat, x, y });
-    setTimeout(() => this.ctxRenameInputRef?.nativeElement?.focus(), 0);
+    // Positioned at the click point first, then re-clamped against the menu's
+    // actual rendered size once it exists in the DOM — the item list (files,
+    // settings, share, delete/confirm) varies in height, so a fixed guessed
+    // height was cutting the menu off near the bottom of the viewport.
+    this.ctxMenu.set({ chat, x: event.clientX, y: event.clientY });
+    setTimeout(() => {
+      this.ctxRenameInputRef?.nativeElement?.focus();
+      this._clampCtxMenuToViewport();
+    }, 0);
+  }
+
+  /** Re-clamps on the next tick — used when the menu's content grows after
+   * initial render (e.g. the delete-confirm block expanding it). */
+  reclampCtxMenuNextTick(): void {
+    setTimeout(() => this._clampCtxMenuToViewport(15), 0);
+  }
+
+  private _clampCtxMenuToViewport(margin = 40): void {
+    const el = this.ctxMenuElRef?.nativeElement;
+    const menu = this.ctxMenu();
+    if (!el || !menu) return;
+    const rect = el.getBoundingClientRect();
+    const x = Math.min(menu.x, Math.max(margin, window.innerWidth - rect.width - margin));
+    const y = Math.min(menu.y, Math.max(margin, window.innerHeight - rect.height - margin));
+    if (x !== menu.x || y !== menu.y) this.ctxMenu.set({ ...menu, x, y });
   }
 
   closeCtxMenu(): void {
