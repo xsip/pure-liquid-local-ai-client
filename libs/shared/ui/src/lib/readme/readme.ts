@@ -356,14 +356,16 @@ import { SHOW_CHAT_LINK } from '../tokens';
             @if (isBrowser) {
               <section>
                 <div
-                  class="dark:hidden block bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'chat-preview-light.png'"
+                  (click)="openPreview('chat-preview-light.png')"
                   role="img"
                   aria-label="chat overview light"
                 ></div>
                 <div
-                  class="dark:block hidden bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'chat-preview-dark.png'"
+                  (click)="openPreview('chat-preview-dark.png')"
                   role="img"
                   aria-label="chat overview dark"
                 ></div>
@@ -775,14 +777,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               </p>
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'mcp-preview-light.png'"
+                  (click)="openPreview('mcp-preview-light.png')"
                   role="img"
                   aria-label="chat overview light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'mcp-preview-dark.png'"
+                  (click)="openPreview('mcp-preview-dark.png')"
                   role="img"
                   aria-label="chat overview dark"
                 ></div>
@@ -828,14 +832,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               </p>
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'mcp-management-dialog-light.png'"
+                  (click)="openPreview('mcp-management-dialog-light.png')"
                   role="img"
                   aria-label="chat overview light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'mcp-management-dialog-dark.png'"
+                  (click)="openPreview('mcp-management-dialog-dark.png')"
                   role="img"
                   aria-label="chat overview dark"
                 ></div>
@@ -889,14 +895,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
 
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'mcp-progress-light.gif'"
+                  (click)="openPreview('mcp-progress-light.gif')"
                   role="img"
                   aria-label="chat overview light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'mcp-progress-dark.gif'"
+                  (click)="openPreview('mcp-progress-dark.gif')"
                   role="img"
                   aria-label="chat overview dark"
                 ></div>
@@ -952,14 +960,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
 
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'chat-image-generator-light.png'"
+                  (click)="openPreview('chat-image-generator-light.png')"
                   role="img"
                   aria-label="chat overview light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'chat-image-generator-dark.png'"
+                  (click)="openPreview('chat-image-generator-dark.png')"
                   role="img"
                   aria-label="chat overview dark"
                 ></div>
@@ -1046,14 +1056,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               </p>
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'chat-voice-preview-light.png'"
+                  (click)="openPreview('chat-voice-preview-light.png')"
                   role="img"
                   aria-label="chat overview light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'chat-voice-preview-dark.png'"
+                  (click)="openPreview('chat-voice-preview-dark.png')"
                   role="img"
                   aria-label="chat overview dark"
                 ></div>
@@ -1104,14 +1116,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               </p>
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'audio-transcribe-light.gif'"
+                  (click)="openPreview('audio-transcribe-light.gif')"
                   role="img"
                   aria-label="chat overview light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-2 bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'audio-transcribe-dark.gif'"
+                  (click)="openPreview('audio-transcribe-dark.gif')"
                   role="img"
                   aria-label="chat overview dark"
                 ></div>
@@ -1337,14 +1351,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               <h3 class="text-base font-semibold text-text-primary mb-2">User Management</h3>
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'admin-users-preview-light.png'"
+                  (click)="openPreview('admin-users-preview-light.png')"
                   role="img"
                   aria-label="admin CMS user management light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-6 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-6 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'admin-users-preview-dark.png'"
+                  (click)="openPreview('admin-users-preview-dark.png')"
                   role="img"
                   aria-label="admin CMS user management dark"
                 ></div>
@@ -1362,14 +1378,16 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               </h3>
               @if (isBrowser) {
                 <div
-                  class="dark:hidden block mb-2 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:hidden block mb-2 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'admin-tokens-preview-light.png'"
+                  (click)="openPreview('admin-tokens-preview-light.png')"
                   role="img"
                   aria-label="admin CMS token limit config management light"
                 ></div>
                 <div
-                  class="dark:block hidden mb-6 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay h-56 sm:h-72 lg:h-96"
+                  class="dark:block hidden mb-6 rounded-xl border border-border-default bg-contain bg-center bg-no-repeat bg-surface-overlay cursor-zoom-in h-56 sm:h-72 lg:h-96"
                   [uiParallax]="'admin-tokens-preview-dark.png'"
+                  (click)="openPreview('admin-tokens-preview-dark.png')"
                   role="img"
                   aria-label="admin CMS token limit config management dark"
                 ></div>
@@ -1484,6 +1502,29 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
           </div>
         </footer>
       </div>
+
+      <!-- ── IMAGE PREVIEW LIGHTBOX ─────────────────────────────────────────── -->
+      @if (previewImage()) {
+        <div
+          class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8 bg-black/70 backdrop-blur-sm animate-fade-in"
+          (click)="closePreview()"
+        >
+          <button
+            type="button"
+            (click)="closePreview()"
+            class="absolute top-4 right-4 sm:top-6 sm:right-6 inline-flex items-center justify-center w-9 h-9 rounded-xl border border-white/20 text-white/80 hover:text-white hover:bg-white/10 active:scale-90"
+            aria-label="Close image preview"
+          >
+            <ng-icon name="heroXMark" class="w-5 h-5" />
+          </button>
+          <img
+            [src]="previewImage()"
+            alt="Preview"
+            (click)="$event.stopPropagation()"
+            class="max-w-full max-h-full rounded-xl shadow-2xl animate-pop-in"
+          />
+        </div>
+      }
     </div>
   `,
 })
@@ -1535,6 +1576,16 @@ export class ReadmeComponent implements AfterViewInit, OnDestroy {
 
   scrollToTop(): void {
     document.getElementById('hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  readonly previewImage = signal<string | null>(null);
+
+  openPreview(src: string): void {
+    this.previewImage.set(src);
+  }
+
+  closePreview(): void {
+    this.previewImage.set(null);
   }
 
   readonly navSections = [
