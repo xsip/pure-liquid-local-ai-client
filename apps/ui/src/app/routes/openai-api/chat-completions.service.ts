@@ -151,7 +151,7 @@ export class ChatCompletionsService {
             .filter((f) => !!f)
             .join('\n') ?? '') +
           (appendedFiles?.length ? '  \n' : '') +
-          input,
+          input ? input : '',
         date: new Date(),
       },
     ]);
