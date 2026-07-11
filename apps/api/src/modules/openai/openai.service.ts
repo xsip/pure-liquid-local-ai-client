@@ -31,6 +31,7 @@ import { OpenAiResponseService } from './open-ai-response.service';
 import { ActiveGenerationService } from './active-generation.service';
 import {
   McpClientService,
+  McpToolContentPart,
   McpToolHeaders,
   OpenAiFunctionTool,
 } from '../mcp-client/mcp-client.service';
@@ -266,6 +267,7 @@ export class OpenAiService {
       'generate-file-from-content-tool',
       'generate-zip-from-file-ids',
       'generate-image-tool',
+      'get-image-by-url-tool',
     ];
     if (chatMeta.useCrypto && chatMeta.cryptoKey) {
       allowedTools.push('decrypt-message-tool');
@@ -587,16 +589,45 @@ export class OpenAiService {
               customTarget?.endpoint,
               customTarget?.headers,
             );
-            messages.push({
-              role: 'tool',
-              tool_call_id: tc.id,
-              content: result,
-            });
+            const image = this.extractImageFromToolResult(result);
+            if (image.isImage) {
+              messages.push({
+                role: 'tool',
+                tool_call_id: tc.id,
+                content: 'Image retrieved successfully.',
+              });
+              messages.push({
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Please analyse the image returned by the previous tool.',
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${image.mimeType};base64,${image.base64}`,
+                    },
+                  },
+                ],
+              });
+            } else {
+              messages.push({
+                role: 'tool',
+                tool_call_id: tc.id,
+                content: Array.isArray(result) ? JSON.stringify(result) : result,
+              });
+            }
 
             this.writeSseEvent(
               res,
               'response.mcp_call.completed',
-              { type: 'response.mcp_call.completed', name: tc.name, arguments: args, output: result },
+              {
+                type: 'response.mcp_call.completed',
+                name: tc.name,
+                arguments: args,
+                output: image.isImage ? 'Image retrieved successfully.' : result,
+              },
               resolvedChatMetaId,
             );
           }
@@ -799,6 +830,36 @@ export class OpenAiService {
 
       return m;
     });
+  }
+
+  /**
+   * Detects whether a raw MCP tool result carries an image part and, if so,
+   * validates it into a data-URI-ready {mimeType, base64} pair. Returns
+   * isImage: false for anything that isn't a clean single image (missing
+   * content, bad mime type, invalid base64, empty payload) so the caller can
+   * fall back to normal text-tool handling instead of throwing.
+   */
+  private extractImageFromToolResult(
+    result: string | McpToolContentPart[],
+  ): { isImage: boolean; mimeType?: string; base64?: string } {
+    if (!Array.isArray(result)) return { isImage: false };
+
+    const imagePart = result.find(
+      (part) => part?.type === 'image' && part.mimeType && part.data,
+    );
+    if (!imagePart) return { isImage: false };
+
+    const mimeType = imagePart.mimeType!;
+    const base64 = imagePart.data!;
+
+    if (!/^image\/(png|jpeg|jpg|webp|gif)$/i.test(mimeType)) {
+      return { isImage: false };
+    }
+    if (!base64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
+      return { isImage: false };
+    }
+
+    return { isImage: true, mimeType, base64 };
   }
 
   private buildToolInstructions(toolNames: string[]): string {

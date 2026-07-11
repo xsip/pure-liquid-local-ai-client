@@ -9,6 +9,13 @@ export interface McpToolHeaders {
   requestId?: string;
 }
 
+export interface McpToolContentPart {
+  type: string;
+  text?: string;
+  mimeType?: string;
+  data?: string;
+}
+
 export interface OpenAiFunctionTool {
   type: 'function';
   function: {
@@ -104,11 +111,17 @@ export class McpClientService {
     headers: McpToolHeaders,
     endpoint?: string,
     customHeaders?: Record<string, string>,
-  ): Promise<string> {
+  ): Promise<string | McpToolContentPart[]> {
     const client = await this.connect(headers, endpoint, customHeaders);
     try {
       const result = await client.callTool({ name, arguments: args });
-      const content = result.content as Array<{ type: string; text?: string }>;
+      const content = result.content as McpToolContentPart[];
+
+      // Image parts must reach the caller untouched so it can build a
+      // multimodal data-URI message instead of collapsing them to text/JSON.
+      const hasImagePart = (content ?? []).some((part) => part.type === 'image');
+      if (hasImagePart) return content ?? [];
+
       const textParts = (content ?? [])
         .filter((part) => part.type === 'text' && part.text)
         .map((part) => part.text as string);

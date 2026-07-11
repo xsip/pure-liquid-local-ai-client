@@ -364,7 +364,7 @@ export class ApiTools {
     }
   }
   @Tool({
-    name: 'get-image-tool',
+    name: 'get-image-by-url-tool',
     description:
       'Returns a image by url. You can use that to view and/or describe the image',
     parameters: z.object({
