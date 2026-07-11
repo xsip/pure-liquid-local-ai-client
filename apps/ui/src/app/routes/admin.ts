@@ -31,13 +31,37 @@ import { TextInputComponent } from '../shared/components/ui/text-input.component
 import { ToggleComponent } from '../shared/components/ui/toggle.component';
 import {
   AdminService,
-  AdminUser,
-  TokenLimitConfig,
-  AdminRole,
-  AdminSubscription,
-} from './admin/admin.service';
+  CreateAdminUserDto,
+  CreateTokenLimitConfigDto,
+  TokenLimitConfigService,
+  UpdateAdminUserDto,
+  UpdateTokenLimitConfigDto,
+} from '../client';
 
 type Tab = 'users' | 'tokenLimits';
+
+type AdminRole = CreateAdminUserDto.RoleEnum;
+/** Free-form subscription tier name — not restricted to 'free'/'basic'. */
+type AdminSubscription = string;
+
+interface AdminUser {
+  _id: string;
+  username: string;
+  role: AdminRole;
+  subscription: AdminSubscription;
+  isActivated: boolean;
+  usedTokens: number;
+  tokenCountResetDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface TokenLimitConfig {
+  _id: string;
+  subscription: AdminSubscription;
+  tokensPerInterval: number;
+  minutesTillReset: number;
+}
 
 /** Only errors when non-empty and shorter than 6 chars — lets password stay optional on edit. */
 function optionalMinLength(min: number) {
@@ -394,6 +418,7 @@ function optionalMinLength(min: number) {
 })
 export class AdminCms implements OnInit {
   private readonly adminService = inject(AdminService);
+  private readonly tokenLimitConfigService = inject(TokenLimitConfigService);
   private readonly fb = inject(FormBuilder);
 
   readonly tab = signal<Tab>('users');
@@ -443,8 +468,8 @@ export class AdminCms implements OnInit {
   }
 
   loadSubscriptionTypes(): void {
-    this.adminService.listSubscriptionTypes().subscribe({
-      next: (types) => this.subscriptionTypes.set(types),
+    this.adminService.adminListSubscriptionTypes().subscribe({
+      next: (types: string[]) => this.subscriptionTypes.set(types),
       error: () => {
         // Non-fatal — keep whatever list we already have (defaults to free/basic).
       },
@@ -460,8 +485,8 @@ export class AdminCms implements OnInit {
 
   loadUsers(): void {
     this.usersLoading.set(true);
-    this.adminService.listUsers().subscribe({
-      next: (list) => {
+    this.adminService.adminListUsers().subscribe({
+      next: (list: AdminUser[]) => {
         this.users.set(list);
         this.usersLoading.set(false);
       },
@@ -520,29 +545,31 @@ export class AdminCms implements OnInit {
     };
 
     if (editing) {
+      const payload: UpdateAdminUserDto = {
+        password: raw.password || undefined,
+        role: raw.role!,
+        subscription: raw.subscription!,
+        isActivated: raw.isActivated!,
+      };
       this.adminService
-        .updateUser(editing._id, {
-          password: raw.password || undefined,
-          role: raw.role!,
-          subscription: raw.subscription!,
-          isActivated: raw.isActivated!,
-        })
+        .adminUpdateUser(editing._id, payload)
         .subscribe({ next: onDone, error: () => onError('Failed to update user.') });
     } else {
+      const payload: CreateAdminUserDto = {
+        username: raw.username!,
+        password: raw.password!,
+        role: raw.role!,
+        subscription: raw.subscription!,
+        isActivated: raw.isActivated!,
+      };
       this.adminService
-        .createUser({
-          username: raw.username!,
-          password: raw.password!,
-          role: raw.role!,
-          subscription: raw.subscription!,
-          isActivated: raw.isActivated!,
-        })
+        .adminCreateUser(payload)
         .subscribe({ next: onDone, error: (err) => onError(err?.error?.message ?? 'Failed to create user.') });
     }
   }
 
   resetTokens(user: AdminUser): void {
-    this.adminService.resetUserTokens(user._id).subscribe({
+    this.adminService.adminResetUserTokens(user._id).subscribe({
       next: () => this.loadUsers(),
       error: () => this.errorMessage.set('Failed to reset token usage.'),
     });
@@ -552,7 +579,7 @@ export class AdminCms implements OnInit {
     this.pendingDelete.set({
       message: `Delete user "${user.username}"? This cannot be undone.`,
       confirm: () => {
-        this.adminService.deleteUser(user._id).subscribe({
+        this.adminService.adminDeleteUser(user._id).subscribe({
           next: () => {
             this.pendingDelete.set(null);
             this.loadUsers();
@@ -570,8 +597,8 @@ export class AdminCms implements OnInit {
 
   loadConfigs(): void {
     this.configsLoading.set(true);
-    this.adminService.listTokenLimitConfigs().subscribe({
-      next: (list) => {
+    this.tokenLimitConfigService.findAllTokenLimitConfigs().subscribe({
+      next: (list: TokenLimitConfig[]) => {
         this.configs.set(list);
         this.configsLoading.set(false);
       },
@@ -622,19 +649,21 @@ export class AdminCms implements OnInit {
     };
 
     if (editing) {
-      this.adminService
-        .updateTokenLimitConfig(editing._id, {
-          tokensPerInterval: Number(raw.tokensPerInterval),
-          minutesTillReset: Number(raw.minutesTillReset),
-        })
+      const payload: UpdateTokenLimitConfigDto = {
+        tokensPerInterval: Number(raw.tokensPerInterval),
+        minutesTillReset: Number(raw.minutesTillReset),
+      };
+      this.tokenLimitConfigService
+        .updateTokenLimitConfig(editing._id, payload)
         .subscribe({ next: onDone, error: () => onError('Failed to update config.') });
     } else {
-      this.adminService
-        .createTokenLimitConfig({
-          subscription: raw.subscription!,
-          tokensPerInterval: Number(raw.tokensPerInterval),
-          minutesTillReset: Number(raw.minutesTillReset),
-        })
+      const payload: CreateTokenLimitConfigDto = {
+        subscription: raw.subscription!,
+        tokensPerInterval: Number(raw.tokensPerInterval),
+        minutesTillReset: Number(raw.minutesTillReset),
+      };
+      this.tokenLimitConfigService
+        .createTokenLimitConfig(payload)
         .subscribe({
           next: () => {
             onDone();
@@ -649,7 +678,7 @@ export class AdminCms implements OnInit {
     this.pendingDelete.set({
       message: `Delete the token limit config for "${config.subscription}"?`,
       confirm: () => {
-        this.adminService.deleteTokenLimitConfig(config._id).subscribe({
+        this.tokenLimitConfigService.deleteTokenLimitConfig(config._id).subscribe({
           next: () => {
             this.pendingDelete.set(null);
             this.loadConfigs();
