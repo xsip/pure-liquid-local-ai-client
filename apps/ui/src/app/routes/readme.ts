@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -38,6 +38,10 @@ import {
     `
       :host {
         display: block;
+      }
+
+      section[id] {
+        scroll-margin-top: 4.5rem;
       }
 
       pre {
@@ -213,7 +217,30 @@ import {
       </section>
 
       <!-- ── BODY ───────────────────────────────────────────────────────────── -->
-      <div class="max-w-6xl mx-auto px-4 sm:px-8 py-12 space-y-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 py-12">
+        <div class="flex gap-10 items-start">
+          <!-- ── SIDENAV ──────────────────────────────────────────────────────── -->
+          <aside class="hidden lg:block w-56 shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
+            <p class="text-[10px] text-text-muted uppercase tracking-widest font-semibold mb-3 px-2">
+              On this page
+            </p>
+            <nav class="flex flex-col gap-0.5">
+              <a
+                *ngFor="let item of navSections"
+                [href]="'#' + item.id"
+                class="px-2 py-1.5 rounded-lg text-xs transition-colors border-l-2"
+                [class]="
+                  activeSection() === item.id
+                    ? 'border-accent text-accent bg-accent/10 font-medium'
+                    : 'border-transparent text-text-muted hover:text-text-primary hover:bg-surface-overlay'
+                "
+                >{{ item.label }}</a
+              >
+            </nav>
+          </aside>
+
+          <!-- ── SECTIONS ─────────────────────────────────────────────────────── -->
+          <div class="flex-1 min-w-0 space-y-20">
         <!-- BREAKING CHANGE BANNER -->
         <section>
           <div
@@ -245,7 +272,7 @@ import {
         </section>
 
         <!-- OVERVIEW -->
-        <section>
+        <section id="overview">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Overview</h2>
           <p class="text-text-secondary mb-6">
             This Nx monorepo hosts two applications that act as a single product: an authenticated
@@ -358,6 +385,39 @@ import {
           </p>
         </section>
 
+        <!-- RESILIENT BACKGROUND GENERATION -->
+        <section id="resilient-generation">
+          <h2 class="text-2xl font-bold text-text-primary mb-2">Resilient Background Generation</h2>
+          <p class="text-text-secondary mb-6">
+            A chat generation isn't tied to the HTTP connection that started it. Refreshing the
+            page, closing the tab, or switching to another chat while the AI is still responding
+            doesn't lose or corrupt anything — the backend keeps generating in the background, and
+            the frontend reattaches to it automatically.
+          </p>
+          <div class="space-y-3 mb-4">
+            <ng-container *ngFor="let step of resilientGenerationSteps">
+              <div
+                class="bg-surface-raised border border-border-default rounded-xl p-4 flex gap-3 items-start"
+              >
+                <span
+                  class="flex-shrink-0 w-7 h-7 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xs"
+                >{{ step.n }}</span
+                >
+                <p class="text-sm text-text-secondary leading-relaxed">
+                  <strong class="text-text-primary">{{ step.title }}</strong> — {{ step.detail }}
+                </p>
+              </div>
+            </ng-container>
+          </div>
+          <div class="bg-surface-overlay border border-border-subtle rounded-xl p-4">
+            <p class="text-xs text-text-secondary">
+              <code class="text-accent">GET /openai/completions-stream/resume?internalChatId=</code>
+              replays every chunk already sent for that chat's in-flight generation, then streams
+              live ones — ending immediately with no data if nothing is actually in-flight.
+            </p>
+          </div>
+        </section>
+
         <!-- ARCHITECTURE -->
         <section id="architecture">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Architecture</h2>
@@ -413,7 +473,7 @@ import {
         </section>
 
         <!-- TECH STACK -->
-        <section>
+        <section id="tech-stack">
           <h2 class="text-2xl font-bold text-text-primary mb-6">Tech Stack</h2>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             <ng-container *ngFor="let item of techStack">
@@ -429,7 +489,7 @@ import {
         </section>
 
         <!-- FEATURES -->
-        <section>
+        <section id="features">
           <h2 class="text-2xl font-bold text-text-primary mb-6">Features</h2>
           <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <ng-container *ngFor="let feat of features">
@@ -499,7 +559,7 @@ import {
         </section>
 
         <!-- ENV VARS -->
-        <section>
+        <section id="environment-variables">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Environment Variables</h2>
           <p class="text-text-secondary mb-6">
             Create
@@ -564,7 +624,7 @@ import {
         </section>
 
         <!-- MCP TOOLS -->
-        <section>
+        <section id="mcp-tool-integration">
           <h2 class="text-2xl font-bold text-text-primary mb-2">MCP Tool Integration</h2>
           <p class="text-text-secondary mb-6">
             The NestJS backend plays <strong>both</strong> MCP roles at once: an
@@ -617,7 +677,7 @@ import {
         </section>
 
         <!-- CUSTOM MCP SERVERS -->
-        <section>
+        <section id="custom-mcp-servers">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Custom MCP Servers</h2>
           <p class="text-text-secondary mb-6">
             Beyond the built-in MCP server/client, each user can register their own external MCP
@@ -653,7 +713,7 @@ import {
         </section>
 
         <!-- IMAGE GENERATION -->
-        <section>
+        <section id="image-generation">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Image Generation (InvokeAI)</h2>
           <p class="text-text-secondary mb-6">
             The <code class="text-accent">generate-image-tool</code> MCP tool lets the model
@@ -685,7 +745,7 @@ import {
         </section>
 
         <!-- IMAGE UPLOAD -->
-        <section>
+        <section id="image-upload">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Image Upload</h2>
           <p class="text-text-secondary mb-6">
             Users can attach one or more images to a chat message before sending. Attached files
@@ -734,7 +794,7 @@ import {
         </section>
 
         <!-- VOICE INPUT -->
-        <section>
+        <section id="voice-input">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Voice Input</h2>
           <p class="text-text-secondary mb-6">
             A microphone button next to the chat input records a voice message and sends it
@@ -774,7 +834,7 @@ import {
         </section>
 
         <!-- ENCRYPTION -->
-        <section>
+        <section id="message-encryption">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Message Encryption</h2>
           <p class="text-text-secondary mb-8">
             Per-chat AES-256 encryption can be opted into when creating a new chat session. Only
@@ -852,7 +912,7 @@ import {
         </section>
 
         <!-- AUTH -->
-        <section>
+        <section id="authentication">
           <h2 class="text-2xl font-bold text-text-primary mb-6">
             Authentication &amp; Authorization
           </h2>
@@ -890,7 +950,7 @@ import {
         </section>
 
         <!-- TOKEN LIMITING -->
-        <section>
+        <section id="token-usage">
           <h2 class="text-2xl font-bold text-text-primary mb-2">Token Usage &amp; Rate Limiting</h2>
           <p class="text-text-secondary mb-6">
             Token consumption is tracked per user and enforced against subscription-tier limits
@@ -1017,7 +1077,7 @@ import {
         </section>
 
         <!-- API TABLE -->
-        <section>
+        <section id="api-overview">
           <h2 class="text-2xl font-bold text-text-primary mb-6">API Overview</h2>
           <div class="overflow-x-auto rounded-xl border border-border-default">
             <table class="w-full text-sm">
@@ -1052,10 +1112,12 @@ import {
             <code class="text-accent">USE_SWAGGER=true</code>.
           </p>
         </section>
+          </div>
+        </div>
 
         <!-- FOOTER -->
         <footer
-          class="border-t border-border-default pt-8 pb-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-text-muted"
+          class="border-t border-border-default pt-8 pb-4 mt-20 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-text-muted"
         >
           <p>Liquid Local AI Client &mdash; MIT License</p>
           <div class="flex gap-4">
@@ -1069,10 +1131,56 @@ import {
     </div>
   `,
 })
-export class ReadmeComponent {
+export class ReadmeComponent implements AfterViewInit, OnDestroy {
   toggleTheme() {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }
+
+  readonly navSections = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'why-completions', label: 'Chat Completions API' },
+    { id: 'resilient-generation', label: 'Resilient Background Generation' },
+    { id: 'architecture', label: 'Architecture' },
+    { id: 'tech-stack', label: 'Tech Stack' },
+    { id: 'features', label: 'Features' },
+    { id: 'getting-started', label: 'Getting Started' },
+    { id: 'environment-variables', label: 'Environment Variables' },
+    { id: 'mcp-tool-integration', label: 'MCP Tool Integration' },
+    { id: 'custom-mcp-servers', label: 'Custom MCP Servers' },
+    { id: 'image-generation', label: 'Image Generation' },
+    { id: 'image-upload', label: 'Image Upload' },
+    { id: 'voice-input', label: 'Voice Input' },
+    { id: 'message-encryption', label: 'Message Encryption' },
+    { id: 'authentication', label: 'Authentication' },
+    { id: 'token-usage', label: 'Token Usage' },
+    { id: 'admin-cms', label: 'Admin CMS' },
+    { id: 'api-overview', label: 'API Overview' },
+  ];
+
+  readonly activeSection = signal<string>('overview');
+  private sectionObserver?: IntersectionObserver;
+
+  ngAfterViewInit(): void {
+    const sections = this.navSections
+      .map((s) => document.getElementById(s.id))
+      .filter((el): el is HTMLElement => !!el);
+
+    this.sectionObserver = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) this.activeSection.set(visible[0].target.id);
+      },
+      { rootMargin: '-72px 0px -70% 0px', threshold: 0 },
+    );
+
+    sections.forEach((el) => this.sectionObserver!.observe(el));
+  }
+
+  ngOnDestroy(): void {
+    this.sectionObserver?.disconnect();
   }
 
   techStack = [
@@ -1215,6 +1323,13 @@ export class ReadmeComponent {
       iconColor: 'text-success-text',
     },
     {
+      title: 'Resilient Background Generation',
+      desc: 'A response keeps generating server-side even if you disconnect. Refresh mid-response or switch chats and reattach to the live stream instead of losing it.',
+      icon: 'M4.5 12a7.5 7.5 0 0113.5-4.5M19.5 12a7.5 7.5 0 01-13.5 4.5M4.5 4.5v4.5h4.5M19.5 19.5V15h-4.5',
+      iconBg: 'bg-accent/15',
+      iconColor: 'text-accent',
+    },
+    {
       title: 'Subscription-Aware Token Limiting',
       desc: 'Configurable token budgets per subscription tier — not limited to free/basic, new tiers can be created on the fly — with automatic reset intervals and SSE limit notifications.',
       icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
@@ -1305,6 +1420,51 @@ export class ReadmeComponent {
     {
       name: 'generate-image-tool',
       desc: 'Generates an image from a text prompt via InvokeAI, stores it in MongoDB, and returns a chat-renderable image URL.',
+    },
+  ];
+
+  resilientGenerationSteps = [
+    {
+      n: '1',
+      title: 'Chat ID sent immediately',
+      detail:
+        "ChatMetadata is created (and its name decided) before any model output starts, and a created_chat event fires right away so the browser updates its URL well before the first token arrives.",
+    },
+    {
+      n: '2',
+      title: 'Writes never abort generation',
+      detail:
+        "a dead client socket's write errors are swallowed instead of thrown, so a disconnect can't cut the tool-call/completion loop short — the chat only unlocks once the exchange actually finishes.",
+    },
+    {
+      n: '3',
+      title: 'Per-chat generation buffer',
+      detail:
+        "every SSE chunk sent is buffered and broadcast, keyed by chat id — including an echo of the user's own turn, since it isn't in persisted history until the whole exchange finishes.",
+    },
+    {
+      n: '4',
+      title: 'Resume endpoint',
+      detail:
+        'GET /openai/completions-stream/resume replays everything buffered so far for a chat, then streams live chunks until it finishes.',
+    },
+    {
+      n: '5',
+      title: 'Automatic frontend reattachment',
+      detail:
+        "if a chat's metadata comes back locked when opened, the frontend reconnects and renders exactly like a freshly-submitted message — tool calls, reasoning, all of it.",
+    },
+    {
+      n: '6',
+      title: 'Honest status text',
+      detail:
+        '"AI is generating a response…" is shown while watching a resumed/shared generation — not the old "someone else is generating" message, which is now reserved for the brief window before a poll actually attaches.',
+    },
+    {
+      n: '7',
+      title: 'Sidebar indicator',
+      detail:
+        'in-progress chats get an animated wave background and a pulsing dot, backed by a 5-second self-healing poll so it never gets stuck on after you navigate away.',
     },
   ];
 
@@ -1527,6 +1687,12 @@ export class ReadmeComponent {
       path: '/openai/completions-stream',
       desc: 'Streaming SSE via Chat Completions API with client-side MCP tool orchestration — the only supported chat path',
       methodClass: 'bg-success-bg text-success-text border border-success-border',
+    },
+    {
+      method: 'GET',
+      path: '/openai/completions-stream/resume',
+      desc: 'Reattach to a generation already in-flight for a chat — see Resilient Background Generation',
+      methodClass: 'bg-tool-bg text-tool-text border border-tool-border',
     },
     {
       method: 'GET',

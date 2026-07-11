@@ -12,6 +12,7 @@ A full-stack AI chat client that connects to any OpenAI-compatible local inferen
 
 - [Overview](#overview)
 - [Chat Completions API (current default)](#chat-completions-api-current-default)
+- [Resilient Background Generation](#resilient-background-generation)
 - [Architecture](#architecture)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
@@ -66,6 +67,28 @@ One known limitation of the Chat Completions path: file attachments are text-onl
 
 ---
 
+## Resilient Background Generation
+
+A chat generation is no longer tied to the HTTP connection that started it. Refreshing the page, closing the tab, or switching to another chat while the AI is still responding doesn't lose or corrupt anything — the backend keeps generating in the background, and the frontend can reattach to it.
+
+### How It Works
+
+1. **The chat ID is sent to the client immediately** — `ChatMetadata` is created (and its name decided) before any model output starts, and a `created_chat` SSE event fires right away so the browser updates its URL well before the first token arrives. A refresh at any point afterwards reopens the same chat instead of losing track of it and creating a duplicate.
+2. **Writes never abort the generation** — `OpenAiService.safeWrite()` swallows write errors from a dead client socket instead of throwing, so a disconnect can't cut the tool-call/completion loop short. The exchange is only unlocked and considered done once it actually finishes (or throws) server-side, in a `finally` block — never on `res.on('close')`.
+3. **In-flight generations are tracked per chat** (`ActiveGenerationService`) — every SSE chunk sent is buffered and broadcast, keyed by `internalChatId`. Since the current turn's user message isn't in persisted history yet (that only happens once the whole exchange finishes), it's echoed into the buffer too via a `user_message_echo` event so a reconnecting client can render it.
+4. **`GET /openai/completions-stream/resume?internalChatId=`** lets a client reattach — it replays everything buffered so far, then streams live chunks until the generation finishes. If nothing is in-flight for that chat, it just ends immediately with no data.
+5. **The frontend resumes automatically** — if a chat's metadata comes back `locked: true` when it's opened (most commonly: the page was refreshed mid-response), `ChatCompletionsService.resumeStreaming()` reconnects and continues rendering exactly like a freshly-submitted message, including tool-call banners and reasoning. Shared chats are lightly polled (every 3s) so a viewer notices when the owner starts a new generation and attaches to it the same way.
+6. **A distinct "generating" status** avoids a misleading message: watching someone else's (or your own resumed) generation shows *"AI is generating a response…"*, not the old *"Locked — someone else is generating a response"* text, which is reserved for the brief window before a poll has actually attached to the stream.
+7. **The chat sidebar marks in-progress chats** with a subtle animated wave background and a pulsing dot on the row, driven by the same `locked` flag plus a 5-second self-healing poll that catches generations which finished after you navigated away from them (so the indicator doesn't get stuck on).
+
+### Resume API
+
+| Method | Path | Description |
+|--------|------|--------------|
+| `GET` | `/openai/completions-stream/resume?internalChatId=` | Reattach to an in-flight generation as SSE — replays buffered chunks, then streams live ones |
+
+---
+
 ## Architecture
 
 ```
@@ -117,6 +140,7 @@ Unlike the old Responses-API flow — where LM Studio itself connected to the MC
 - **Client-side MCP orchestration** — the backend runs its own MCP client, translates MCP tools into OpenAI function-tool definitions, and executes `tool_calls` itself in a loop — no dependency on the inference server's own MCP support
 - **Real-time SSE streaming** — responses are streamed token-by-token to the browser, including reasoning/"thinking" deltas where the model provides them
 - **Persistent chat history** — every exchange is stored in MongoDB as a rolling message array and rehydrated on demand, including reconstructed tool-call banners and image attachments
+- **Resilient background generation** — a response keeps generating server-side even if the client disconnects; refreshing the page or switching chats mid-response reattaches to the live stream instead of losing it (see [Resilient Background Generation](#resilient-background-generation))
 - **Custom MCP servers** — users can register their own MCP servers on their account (endpoint auto-discovers name + tool list), toggle a server or individual tools on/off account-wide, and re-run discovery on demand; per-chat overrides let a specific chat opt out of a server/tool without affecting the account default (see [Custom MCP Servers](#custom-mcp-servers))
 - **MCP tool server** — the backend registers itself as an MCP server and also calls itself as an MCP client
     - `get-token-usage-tool` — returns the authenticated user's current token usage and limit
@@ -575,6 +599,7 @@ All of the above require both a valid JWT and `role: 'admin'`.
 | `DELETE` | `/auth/mcp-servers/:id` | Remove a custom MCP server |
 | `GET` | `/openai/models` | List models via OpenAI SDK |
 | `POST` | `/openai/completions-stream` | Streaming SSE via the Chat Completions API, with client-side MCP tool orchestration — the only supported chat path |
+| `GET` | `/openai/completions-stream/resume` | Reattach to a generation already in-flight for `internalChatId` (see [Resilient Background Generation](#resilient-background-generation)) |
 | `GET` | `/chat-metadata` | List the user's chat sessions |
 | `GET` | `/chat-metadata/:id` | Get a single chat session |
 | `POST` | `/chat-metadata` | Create a chat session |
