@@ -22,6 +22,7 @@ A full-stack AI chat client that connects to any OpenAI-compatible local inferen
 - [Getting Started](#getting-started)
 - [MCP Tool Integration](#mcp-tool-integration)
 - [Custom MCP Servers](#custom-mcp-servers)
+- [Custom MCP Progress Reporting](#custom-mcp-progress-reporting)
 - [Image Generation (InvokeAI)](#image-generation-invokeai)
 - [Image Upload](#image-upload)
 - [Voice Input](#voice-input)
@@ -402,6 +403,29 @@ Beyond the backend's built-in MCP server/client, each user can register their **
 | `PATCH` | `/auth/mcp-servers/:id` | Toggle a server on/off or edit its allowed tools |
 | `POST` | `/auth/mcp-servers/:id/refresh` | Re-discover a server's tool list |
 | `DELETE` | `/auth/mcp-servers/:id` | Remove a server from the account |
+
+---
+
+## Custom MCP Progress Reporting
+
+![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-progress-dark.gif)
+
+
+The MCP spec has a standard `notifications/progress` mechanism, but neither LM Studio nor llama.cpp forward it anywhere the browser can see — since this project's own backend is the MCP client (see [Chat Completions API](#chat-completions-api-current-default)), there was no transport carrying tool progress from a running MCP tool call back to the chat UI. `ToolsHelperService` (`apps/api/src/tools/tools-helper.service.ts`) is a custom workaround that plugs that gap using the same SSE connection already streaming the chat response.
+
+### How It Works
+
+1. **A tool reports progress** — any `@Tool()` method in `apps/api/src/tools/` can call `this.toolsHelperService.emitApiEvent(request, ApiEvent.MCP_PROGRESS, { progress, total, message })` at any point during its execution (see `greeting-tool` in `api.tools.ts` for a working example).
+2. **Looked up by request ID, not MCP progress token** — `emitApiEvent` reads a `requestid` header off the tool's own incoming request (forwarded by `McpClientService` as an MCP request header on every tool call) and uses it to look up the live SSE `Response` object via `OpenAiResponseService.get(requestId)` — the same registry `OpenAiService` uses to track in-flight generations for [Resilient Background Generation](#resilient-background-generation).
+3. **Written directly onto the chat SSE stream** — if a matching response is found, the event is written straight onto it as a custom SSE event:
+   ```
+   event: api_report_mcp_progress
+   data: {"type":"api_report_mcp_progress","progressToken":"<requestId>","progress":"42","total":"100","message":"..."}
+   ```
+   This rides the exact same connection as the chat completion chunks and `response.mcp_call.*` events — no separate channel, no extra client connection.
+4. **Frontend consumption** — `OpenAiStreamService` (`apps/ui/src/app/routes/openai-api/completions-openai-stream.service.ts`) parses `api_report_mcp_progress` like any other SSE event and forwards it through `events$`. `ChatCompletionsService` updates the currently-streaming `tool_call` chat bubble's `progress` / `total` / `progressMessage` fields, which `chat-messages.component.ts` renders live under the tool-call banner while the call is in flight.
+
+> **Why this exists:** it's not part of the MCP spec's own progress-notification flow — it's a bespoke SSE side-channel built specifically because this project's inference-server-agnostic MCP client architecture has no other way to surface a tool's own progress updates to the browser in real time.
 
 ---
 

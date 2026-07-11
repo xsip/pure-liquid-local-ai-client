@@ -766,6 +766,66 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               </div>
             </section>
 
+            <!-- MCP PROGRESS REPORTING -->
+            <section id="mcp-progress-reporting">
+              <h2 class="text-2xl font-bold text-text-primary mb-2">
+                Custom MCP Progress Reporting
+              </h2>
+              <p class="text-text-secondary mb-6">
+                MCP's spec has a standard <code class="text-accent">notifications/progress</code>
+                mechanism, but neither LM Studio nor llama.cpp forward it anywhere the browser can
+                see. Since this backend is its own MCP client, there was no transport carrying a
+                tool's progress back to the chat UI —
+                <code class="text-xs bg-surface-overlay px-1.5 py-0.5 rounded text-tool-text"
+                  >apps/api/src/tools/tools-helper.service.ts</code
+                >
+                is a custom workaround that fixes that using the same SSE connection already
+                streaming the chat response.
+              </p>
+
+              <img
+                class="dark:hidden block mb-2"
+                src="mcp-progress-light.gif"
+                alt="chat overview light"
+              />
+              <img
+                class="dark:block hidden mb-2"
+                src="mcp-progress-dark.gif"
+                alt="chat overview dark"
+              />
+
+              <div class="space-y-3 mb-4">
+                <ng-container *ngFor="let step of mcpProgressSteps">
+                  <div
+                    class="bg-surface-raised border border-border-default rounded-xl p-4 flex gap-3 items-start"
+                  >
+                    <span
+                      class="flex-shrink-0 w-7 h-7 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xs"
+                      >{{ step.n }}</span
+                    >
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                      <strong class="text-text-primary">{{ step.title }}</strong> —
+                      {{ step.detail }}
+                    </p>
+                  </div>
+                </ng-container>
+              </div>
+              <div
+                class="flex gap-2 items-start bg-info-bg border border-info-border rounded-lg px-4 py-3"
+              >
+                <ng-icon
+                  name="heroInformationCircle"
+                  class="w-4 h-4 text-info-text flex-shrink-0 mt-0.5"
+                />
+                <p class="text-xs text-info-text">
+                  Not part of the MCP spec's own progress-notification flow — it's a bespoke SSE
+                  side-channel built specifically because this project's inference-server-agnostic
+                  MCP client architecture has no other way to surface a tool's own progress updates
+                  to the browser in real time.
+                </p>
+              </div>
+            </section>
+
             <!-- IMAGE GENERATION -->
             <section id="image-generation">
               <h2 class="text-2xl font-bold text-text-primary mb-2">Image Generation (InvokeAI)</h2>
@@ -1316,6 +1376,7 @@ export class ReadmeComponent implements AfterViewInit, OnDestroy {
     { id: 'environment-variables', label: 'Environment Variables' },
     { id: 'mcp-tool-integration', label: 'MCP Tool Integration' },
     { id: 'custom-mcp-servers', label: 'Custom MCP Servers' },
+    { id: 'mcp-progress-reporting', label: 'MCP Progress Reporting' },
     { id: 'image-generation', label: 'Image Generation' },
     { id: 'image-upload', label: 'Image Upload' },
     { id: 'voice-input', label: 'Voice Input' },
@@ -1561,6 +1622,33 @@ export class ReadmeComponent implements AfterViewInit, OnDestroy {
       title: 'Register a user',
       desc: 'Use Swagger UI at /api or curl:',
       code: `curl -X POST http://localhost:8888/auth/register \\\n  -H "Content-Type: application/json" \\\n  -d '{"username":"alice","password":"s3cret"}'`,
+    },
+  ];
+
+  mcpProgressSteps = [
+    {
+      n: '1',
+      title: 'A tool reports progress',
+      detail:
+        'any @Tool() method calls this.toolsHelperService.emitApiEvent(request, ApiEvent.MCP_PROGRESS, { progress, total, message }) while it runs (see greeting-tool in api.tools.ts for a working example).',
+    },
+    {
+      n: '2',
+      title: 'Looked up by request ID',
+      detail:
+        "emitApiEvent reads a requestid header off the tool's own incoming request (forwarded by McpClientService on every tool call) and uses it to find the live SSE Response via OpenAiResponseService.get(requestId) — the same registry used for Resilient Background Generation.",
+    },
+    {
+      n: '3',
+      title: 'Written onto the chat SSE stream',
+      detail:
+        'if a matching response is found, an api_report_mcp_progress SSE event is written straight onto it — riding the exact same connection as the chat completion chunks and response.mcp_call.* events, no separate channel.',
+    },
+    {
+      n: '4',
+      title: 'Frontend consumption',
+      detail:
+        "OpenAiStreamService parses api_report_mcp_progress like any other SSE event and forwards it through events$. ChatCompletionsService updates the currently-streaming tool_call bubble's progress/total/progressMessage fields, rendered live by chat-messages.component.ts.",
     },
   ];
 
