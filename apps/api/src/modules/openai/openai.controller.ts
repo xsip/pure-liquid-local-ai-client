@@ -147,6 +147,7 @@ export class OpenaiController {
       letAiDecideChatName?: boolean;
       useInvoke?: boolean;
       invokeModel?: InvokeAiModel;
+      mcpOverrides?: string;
     },
   ): Promise<void> {
     const userId = (user as any)._id as Types.ObjectId;
@@ -188,9 +189,20 @@ export class OpenaiController {
           query?.letAiDecideChatName === true,
         useInvoke:
           (query?.useInvoke as unknown) === 'true' || query?.useInvoke === true,
+        mcpOverrides: this.parseMcpOverrides(query?.mcpOverrides),
       } as any,
     );
     // ───────────────────────────────────────────────────────────────────────
+  }
+
+  private parseMcpOverrides(raw?: string): any[] | undefined {
+    if (!raw) return undefined;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   @ApiExtraModels(

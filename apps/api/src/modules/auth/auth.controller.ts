@@ -2,10 +2,13 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   NotFoundException,
+  Param,
+  Patch,
   Post,
   Query,
   UnauthorizedException,
@@ -24,9 +27,11 @@ import {
   ApiNotFoundResponse,
   ApiQuery,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { randomUUID } from 'crypto';
 import { Public } from './public.decorator';
 import { LoginDto } from './login.dto';
 import { RegisterDto } from './register.dto';
@@ -34,6 +39,8 @@ import { User, UserDocument } from './user.schema';
 import { CurrentUser } from './current-user.decorator';
 import { TokenLimitService } from '../token-limit/token-limit.service';
 import { MeDto } from './me.dto';
+import { AddCustomMcpDto, CustomMcpDto, UpdateCustomMcpDto } from './dto/custom-mcp.dto';
+import { McpClientService } from '../mcp-client/mcp-client.service';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -42,6 +49,7 @@ export class AuthController {
     private readonly jwtService: JwtService,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly tokenLimitService: TokenLimitService,
+    private readonly mcpClientService: McpClientService,
   ) {}
 
   // ── GET /auth/me ──────────────────────────────────────────────────────────
@@ -73,7 +81,136 @@ export class AuthController {
       usedTokens: user.usedTokens ?? 0,
       tokenCountResetDate: user.tokenCountResetDate ?? null,
       tokenLimit,
+      customMcps: user.customMcps ?? [],
     };
+  }
+
+  // ── Custom MCP servers ────────────────────────────────────────────────────
+
+  @Post('mcp-servers')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({
+    operationId: 'addCustomMcpServer',
+    summary: 'Register a custom MCP server on the current account',
+    description:
+      'Connects to the given endpoint, fetches its name and tool list, and ' +
+      'stores it (active + all tools allowed by default).',
+  })
+  @ApiBody({ type: AddCustomMcpDto })
+  @ApiCreatedResponse({ type: CustomMcpDto })
+  async addCustomMcpServer(
+    @CurrentUser() user: User & { _id?: Types.ObjectId },
+    @Body() dto: AddCustomMcpDto,
+  ): Promise<CustomMcpDto> {
+    const { name, tools } = await this.mcpClientService.discoverServer(
+      dto.endpoint,
+      dto.headers,
+    );
+
+    const entry: CustomMcpDto = {
+      id: randomUUID(),
+      name,
+      endpoint: dto.endpoint,
+      active: true,
+      availableTools: tools,
+      allowedTools: tools,
+      headers: dto.headers,
+    };
+
+    const doc = await this.userModel.findById(user._id).exec();
+    if (!doc) throw new NotFoundException('User not found');
+    doc.customMcps = [...(doc.customMcps ?? []), entry];
+    await doc.save();
+
+    return entry;
+  }
+
+  @Patch('mcp-servers/:id')
+  @ApiBearerAuth()
+  @ApiOperation({
+    operationId: 'updateCustomMcpServer',
+    summary: 'Toggle a custom MCP server on/off or edit its allowed tools',
+  })
+  @ApiParam({ name: 'id' })
+  @ApiBody({ type: UpdateCustomMcpDto })
+  @ApiOkResponse({ type: CustomMcpDto })
+  @ApiNotFoundResponse({ description: 'No MCP server with this id' })
+  async updateCustomMcpServer(
+    @CurrentUser() user: User & { _id?: Types.ObjectId },
+    @Param('id') id: string,
+    @Body() dto: UpdateCustomMcpDto,
+  ): Promise<CustomMcpDto> {
+    const doc = await this.userModel.findById(user._id).exec();
+    if (!doc) throw new NotFoundException('User not found');
+    const entry = (doc.customMcps ?? []).find((m) => m.id === id);
+    if (!entry) throw new NotFoundException(`No MCP server with id "${id}"`);
+
+    Object.assign(entry, dto);
+    doc.markModified('customMcps');
+    await doc.save();
+
+    return entry;
+  }
+
+  @Post('mcp-servers/:id/refresh')
+  @ApiBearerAuth()
+  @ApiOperation({
+    operationId: 'refreshCustomMcpServer',
+    summary: 'Re-discover a custom MCP server\'s tool list',
+    description:
+      'Re-connects to the server\'s endpoint and refreshes availableTools. ' +
+      'Newly discovered tools are allowed by default; tools that disappeared ' +
+      'are dropped from allowedTools; existing allow/deny choices are preserved.',
+  })
+  @ApiParam({ name: 'id' })
+  @ApiOkResponse({ type: CustomMcpDto })
+  @ApiNotFoundResponse({ description: 'No MCP server with this id' })
+  async refreshCustomMcpServer(
+    @CurrentUser() user: User & { _id?: Types.ObjectId },
+    @Param('id') id: string,
+  ): Promise<CustomMcpDto> {
+    const doc = await this.userModel.findById(user._id).exec();
+    if (!doc) throw new NotFoundException('User not found');
+    const entry = (doc.customMcps ?? []).find((m) => m.id === id);
+    if (!entry) throw new NotFoundException(`No MCP server with id "${id}"`);
+
+    const { name, tools } = await this.mcpClientService.discoverServer(
+      entry.endpoint,
+      entry.headers,
+    );
+
+    const keptAllowed = entry.allowedTools.filter((t) => tools.includes(t));
+    const newlyDiscovered = tools.filter((t) => !entry.availableTools.includes(t));
+
+    entry.name = name;
+    entry.availableTools = tools;
+    entry.allowedTools = [...keptAllowed, ...newlyDiscovered];
+
+    doc.markModified('customMcps');
+    await doc.save();
+
+    return entry;
+  }
+
+  @Delete('mcp-servers/:id')
+  @ApiBearerAuth()
+  @ApiOperation({
+    operationId: 'deleteCustomMcpServer',
+    summary: 'Remove a custom MCP server from the current account',
+  })
+  @ApiParam({ name: 'id' })
+  @ApiOkResponse({ description: 'Server removed' })
+  async deleteCustomMcpServer(
+    @CurrentUser() user: User & { _id?: Types.ObjectId },
+    @Param('id') id: string,
+  ): Promise<{ id: string }> {
+    const doc = await this.userModel.findById(user._id).exec();
+    if (!doc) throw new NotFoundException('User not found');
+    doc.customMcps = (doc.customMcps ?? []).filter((m) => m.id !== id);
+    await doc.save();
+
+    return { id };
   }
 
   // ── POST /auth/login ──────────────────────────────────────────────────────

@@ -44,20 +44,24 @@ export class McpClientService {
     this.serverUrls = [selfMcpUrl, ...extraUrls];
   }
 
-  private async connect(headers: McpToolHeaders): Promise<Client> {
+  private async connect(
+    headers: McpToolHeaders,
+    endpoint?: string,
+    customHeaders?: Record<string, string>,
+  ): Promise<Client> {
     const client = new Client({
       name: 'liquid-local-ai-client-mcp-client',
       version: '1.0.0',
     });
 
-    const requestHeaders: Record<string, string> = {};
+    const requestHeaders: Record<string, string> = { ...customHeaders };
     if (headers.authorization)
       requestHeaders.authorization = headers.authorization;
     if (headers.chatId) requestHeaders.chatid = headers.chatId;
     if (headers.requestId) requestHeaders.requestid = headers.requestId;
 
     const transport = new StreamableHTTPClientTransport(
-      new URL(this.serverUrls[0]),
+      new URL(endpoint ?? this.serverUrls[0]),
       { requestInit: { headers: requestHeaders } },
     );
 
@@ -68,8 +72,10 @@ export class McpClientService {
   async listTools(
     headers: McpToolHeaders,
     allowedToolNames?: string[],
+    endpoint?: string,
+    customHeaders?: Record<string, string>,
   ): Promise<OpenAiFunctionTool[]> {
-    const client = await this.connect(headers);
+    const client = await this.connect(headers, endpoint, customHeaders);
     try {
       const { tools } = await client.listTools();
       return tools
@@ -96,8 +102,10 @@ export class McpClientService {
     name: string,
     args: Record<string, unknown>,
     headers: McpToolHeaders,
+    endpoint?: string,
+    customHeaders?: Record<string, string>,
   ): Promise<string> {
-    const client = await this.connect(headers);
+    const client = await this.connect(headers, endpoint, customHeaders);
     try {
       const result = await client.callTool({ name, arguments: args });
       const content = result.content as Array<{ type: string; text?: string }>;
@@ -110,6 +118,27 @@ export class McpClientService {
     } catch (error: any) {
       this.logger.error(`MCP tool call failed for "${name}": ${error.message}`);
       return JSON.stringify({ error: error.message ?? 'Tool call failed' });
+    } finally {
+      await client.close();
+    }
+  }
+
+  /**
+   * Connects to an arbitrary MCP server (used when a user registers a custom
+   * server) and returns its display name plus the tool names it exposes.
+   */
+  async discoverServer(
+    endpoint: string,
+    customHeaders?: Record<string, string>,
+  ): Promise<{ name: string; tools: string[] }> {
+    const client = await this.connect({}, endpoint, customHeaders);
+    try {
+      const version = client.getServerVersion();
+      const { tools } = await client.listTools();
+      return {
+        name: version?.name ?? endpoint,
+        tools: tools.map((tool) => tool.name),
+      };
     } finally {
       await client.close();
     }

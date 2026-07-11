@@ -144,6 +144,7 @@ export class OpenAiService {
       letAiDecideChatName?: boolean;
       useInvoke?: boolean;
       invokeModel?: InvokeAiModel;
+      mcpOverrides?: ChatMetadataDocument['mcpOverrides'];
     },
   ): Promise<void> {
     const requestId = crypto
@@ -197,6 +198,7 @@ export class OpenAiService {
           lastMessageSentAt: new Date(),
           reasoningMode: dto.reasoning_effort ?? 'off',
           tools: [],
+          mcpOverrides: newChatConfig?.mcpOverrides ?? [],
         },
       );
     }
@@ -249,9 +251,41 @@ export class OpenAiService {
     let tools: OpenAiFunctionTool[] = [];
     try {
       tools = await this.mcpClientService.listTools(mcpHeaders, allowedTools);
-      console.log(tools);
     } catch (error: any) {
       this.logger.error(`Failed to list MCP tools: ${error.message}`);
+    }
+
+    // ── Custom MCP servers — merge the user's active servers (minus this
+    // chat's opt-out overrides) in, tracking which endpoint/headers each
+    // discovered tool name belongs to so tool calls get routed correctly.
+    const customToolDispatch = new Map<
+      string,
+      { endpoint: string; headers?: Record<string, string> }
+    >();
+    try {
+      const userDoc = await this.userModel.findById(userId).exec();
+      for (const mcp of userDoc?.customMcps ?? []) {
+        if (!mcp.active) continue;
+        const override = chatMeta.mcpOverrides?.find((o) => o.mcpId === mcp.id);
+        if (override && !override.active) continue;
+
+        const effectiveAllowedTools = override?.allowedTools ?? mcp.allowedTools;
+        const customTools = await this.mcpClientService.listTools(
+          mcpHeaders,
+          effectiveAllowedTools,
+          mcp.endpoint,
+          mcp.headers,
+        );
+        for (const tool of customTools) {
+          customToolDispatch.set(tool.function.name, {
+            endpoint: mcp.endpoint,
+            headers: mcp.headers,
+          });
+        }
+        tools = [...tools, ...customTools];
+      }
+    } catch (error: any) {
+      this.logger.error(`Failed to list custom MCP tools: ${error.message}`);
     }
 
     let instructions = this.buildToolInstructions(allowedTools);
@@ -399,10 +433,13 @@ export class OpenAiService {
               arguments: args,
             });
 
+            const customTarget = customToolDispatch.get(tc.name);
             const result = await this.mcpClientService.callTool(
               tc.name,
               args,
               mcpHeaders,
+              customTarget?.endpoint,
+              customTarget?.headers,
             );
             messages.push({
               role: 'tool',

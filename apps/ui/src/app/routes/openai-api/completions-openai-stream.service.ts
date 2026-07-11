@@ -77,6 +77,7 @@ export class OpenAiStreamService {
       openAiEndpointPreference?: CreateChatMetadataDto.OpenAiEndpointPreferenceEnum;
       useInvoke?: boolean;
       invokeAiModelToUse?: string;
+      mcpOverrides?: Array<{ mcpId: string; active: boolean; allowedTools: string[] }>;
     },
   ): Promise<void> {
     try {
@@ -96,6 +97,8 @@ export class OpenAiStreamService {
           params.set('useInvoke', String(newChatOptions.useInvoke));
         if (newChatOptions.invokeAiModelToUse)
           params.set('invokeModel', newChatOptions.invokeAiModelToUse);
+        if (newChatOptions.mcpOverrides?.length)
+          params.set('mcpOverrides', JSON.stringify(newChatOptions.mcpOverrides));
       }
       const queryString = params.toString();
       const url = `api/openai/completions-stream${queryString ? `?${queryString}` : ''}`;

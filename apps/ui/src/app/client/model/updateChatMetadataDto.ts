@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ChatMcpOverrideDto } from './chatMcpOverrideDto';
 import { EphemeralMcpIntegrationDto } from './ephemeralMcpIntegrationDto';
 
 
@@ -21,6 +22,10 @@ export interface UpdateChatMetadataDto {
     openAiEndpointPreference?: UpdateChatMetadataDto.OpenAiEndpointPreferenceEnum;
     useInvoke?: boolean;
     invokeAiModelToUse?: UpdateChatMetadataDto.InvokeAiModelToUseEnum;
+    /**
+     * Opt-out overrides for the user\'s account-level custom MCP servers
+     */
+    mcpOverrides?: Array<ChatMcpOverrideDto>;
 }
 export namespace UpdateChatMetadataDto {
     export const OpenAiEndpointPreferenceEnum = {

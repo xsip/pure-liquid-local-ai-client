@@ -1,5 +1,5 @@
 import { animate, style, transition, trigger, state } from '@angular/animations';
-import { Component, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroXMark } from '@ng-icons/heroicons/outline';
@@ -50,12 +50,14 @@ import { heroXMark } from '@ng-icons/heroicons/outline';
     >
       <!-- card -->
       <div
-        class="relative w-88 bg-surface-raised border border-border-default rounded-2xl shadow-depth-xl p-6" @cardAnim
+        class="relative bg-surface-raised border border-border-default rounded-2xl shadow-depth-xl p-6 max-h-[85vh] flex flex-col"
+        [class]="widthClass()"
+        @cardAnim
         style="box-shadow: var(--shadow-xl);"
         (click)="$event.stopPropagation()"
       >
         <!-- header row -->
-        <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center justify-between mb-5 shrink-0">
           <h3 class="text-sm font-semibold text-text-primary tracking-wide">
             <ng-content select="[slot=header]" />
           </h3>
@@ -70,11 +72,18 @@ import { heroXMark } from '@ng-icons/heroicons/outline';
         </div>
 
         <!-- body -->
-        <ng-content />
+        <div class="overflow-y-auto min-h-0">
+          <ng-content />
+        </div>
       </div>
     </div>
   `,
 })
 export class ModalComponent {
+  readonly size = input<'md' | 'lg'>('md');
   readonly closed = output<void>();
+
+  widthClass(): string {
+    return this.size() === 'lg' ? 'w-[34rem] max-w-[92vw]' : 'w-88';
+  }
 }

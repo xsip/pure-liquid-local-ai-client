@@ -60,7 +60,10 @@
     "chatNameCustomHint": "Namen für den Chat eingeben",
     "chatNameNoneHint": "Chat wird ohne Name erstellt",
     "save": "Speichern",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "mcpServers": "MCP-Server",
+    "mcpServersHint": "Standardmäßig aktiviert — hier abwählen",
+    "manageMcps": "MCPs verwalten"
   },
   "chatInput": {
     "placeholder": "Prompt eingeben...",
@@ -130,7 +133,12 @@
     "availableModels": "Verfügbare Modelle",
     "failedLoadUser": "Benutzerdaten konnten nicht geladen werden.",
     "failedLoadModels": "Modelle konnten nicht geladen werden.",
-    "noModelsLoaded": "Keine Modelle in LM Studio geladen."
+    "noModelsLoaded": "Keine Modelle in LM Studio geladen.",
+    "mcpServers": "MCP-Server",
+    "mcpEndpointPlaceholder": "https://beispiel.de/mcp",
+    "mcpRemove": "Server entfernen",
+    "mcpRefresh": "Tools aktualisieren",
+    "noMcpServers": "Noch keine MCP-Server hinzugefügt."
   },
   "common": {
     "close": "Schließen",

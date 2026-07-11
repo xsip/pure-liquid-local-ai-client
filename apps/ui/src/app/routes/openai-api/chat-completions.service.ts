@@ -116,6 +116,7 @@ export class ChatCompletionsService {
       openAiEndpointPreference?: CreateChatMetadataDto.OpenAiEndpointPreferenceEnum;
       useInvoke?: boolean;
       invokeAiModelToUse?: InvokeAiModelToUseEnum;
+      mcpOverrides?: Array<{ mcpId: string; active: boolean; allowedTools: string[] }>;
     },
   ): void {
     if (this.form.invalid || this.streaming() || this.locked()) return;

@@ -2,7 +2,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
 import { Component, ElementRef, input, output, signal, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ChatMetadataDto, CreateChatMetadataDto, UpdateChatMetadataDto } from '../../client';
+import { ChatMcpOverrideDto, ChatMetadataDto, CreateChatMetadataDto, CustomMcpDto, UpdateChatMetadataDto } from '../../client';
 import {
   ChatSettingsData,
   ChatSettingsDialogComponent,
@@ -406,6 +406,7 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
         [showInvoke]="client() === 'OPENAI'"
         (saved)="onSettingsSaved($event)"
         (closed)="closeSettings()"
+        (accountMcpsChange)="accountMcpsChange.emit($event)"
       />
     }
 
@@ -483,6 +484,7 @@ export class ChatSidebarComponent {
   readonly chatList = input.required<ChatMetadataDto[]>();
   readonly chatsLoading = input.required<boolean>();
   readonly currentChatId = input.required<string | null>();
+  readonly customMcps = input<CustomMcpDto[]>([]);
 
   readonly chatOpened = output<string>();
   readonly commitRename = output<{ chatId: string; name: string }>();
@@ -492,6 +494,7 @@ export class ChatSidebarComponent {
   readonly saveCryptoSettings = output<ChatSettingsSaveEvent>();
   readonly shareChat = output<{ chatId: string; username: string }>();
   readonly unshareChat = output<{ chatId: string; userId: string }>();
+  readonly accountMcpsChange = output<CustomMcpDto[]>();
 
   @ViewChild('renameInput') renameInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('ctxRenameInput') ctxRenameInputRef?: ElementRef<HTMLInputElement>;
@@ -596,6 +599,8 @@ export class ChatSidebarComponent {
       cryptoKey: '',
       useInvoke: chat.useInvoke ?? false,
       invokeAiModelToUse: chat.invokeAiModelToUse,
+      customMcps: this.customMcps(),
+      mcpOverrides: chat.mcpOverrides ?? [],
     });
     this.openChatSettings.emit(chat._id!);
   }
@@ -607,9 +612,20 @@ export class ChatSidebarComponent {
     cryptoKey: string,
     useInvoke: boolean,
     invokeAiModelToUse?: InvokeAiModelToUseEnum,
+    mcpOverrides?: ChatMcpOverrideDto[],
   ): void {
     this.settingsModal.update((m) =>
-      m ? { ...m, name, useCrypto, cryptoKey, invokeAiModelToUse, useInvoke } : null,
+      m
+        ? {
+            ...m,
+            name,
+            useCrypto,
+            cryptoKey,
+            invokeAiModelToUse,
+            useInvoke,
+            mcpOverrides: mcpOverrides ?? m.mcpOverrides,
+          }
+        : null,
     );
     this.settingsLoading.set(false);
   }

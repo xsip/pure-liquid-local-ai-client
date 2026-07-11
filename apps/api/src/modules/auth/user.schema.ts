@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { Role } from './roles.decorator';
+import { CustomMcpDto } from './dto/custom-mcp.dto';
 
 export type UserDocument = User & Document;
 
@@ -46,6 +47,10 @@ export class User {
 
   @Prop({ required: false, default: null, type: Date })
   tokenCountResetDate: Date;
+
+  /** Custom MCP servers the user registered on their account. */
+  @Prop({ required: false, default: [], type: [Object] })
+  customMcps: CustomMcpDto[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

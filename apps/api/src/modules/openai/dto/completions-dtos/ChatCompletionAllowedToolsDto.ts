@@ -45,6 +45,7 @@ export class ChatCompletionAllowedToolsDto {
     { "type": "function", "function": { "name": "get_time" } }
   ]
   \`\`\``,
+    type: Object,
     isArray: true,
   })
   @IsArray()

@@ -49,6 +49,7 @@ export class ChatMetadataService {
       ...dto,
       userId,
       tools: dto.tools ?? [],
+      mcpOverrides: dto.mcpOverrides ?? [],
     });
     const saved = await doc.save();
     this.logger.log(`Created ChatMetadata id=${saved._id} user=${userId}`);

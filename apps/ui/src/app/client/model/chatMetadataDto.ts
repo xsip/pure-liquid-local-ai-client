@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ChatMcpOverrideDto } from './chatMcpOverrideDto';
 import { EphemeralMcpIntegrationDto } from './ephemeralMcpIntegrationDto';
 import { GeneratedAssetDto } from './generatedAssetDto';
 
@@ -25,6 +26,7 @@ export interface ChatMetadataDto {
     userId: string;
     reasoningMode: string;
     tools?: Array<EphemeralMcpIntegrationDto>;
+    mcpOverrides?: Array<ChatMcpOverrideDto>;
     createdAt: string;
     updatedAt: string;
     useCrypto?: boolean;

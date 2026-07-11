@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { User, UserSchema } from './user.schema';
 import { TokenLimitModule } from '../token-limit/token-limit.module';
+import { McpClientModule } from '../mcp-client/mcp-client.module';
 
 /**
  * AuthModule owns the JWT config, the User model, and the auth HTTP endpoints.
@@ -26,6 +27,7 @@ import { TokenLimitModule } from '../token-limit/token-limit.module';
       }),
     }),
     TokenLimitModule,
+    McpClientModule,
   ],
   controllers: [AuthController],
   // Export the infra so AppModule's root injector can satisfy guard dependencies.

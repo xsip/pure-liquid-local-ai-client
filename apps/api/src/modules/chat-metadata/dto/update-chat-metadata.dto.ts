@@ -9,6 +9,7 @@ import {
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { EphemeralMcpIntegrationDto } from './ephemeral-mcp-integration.dto';
+import { ChatMcpOverrideDto } from './chat-mcp-override.dto';
 import { OpenAiEndpointPreference } from '../chat-metadata.schema';
 import { InvokeAiModel } from '../../invoke/invoke.service';
 
@@ -65,4 +66,14 @@ export class UpdateChatMetadataDto {
   })
   @IsOptional()
   invokeAiModelToUse?: InvokeAiModel;
+
+  @ApiPropertyOptional({
+    description: 'Opt-out overrides for the user\'s account-level custom MCP servers',
+    type: [ChatMcpOverrideDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChatMcpOverrideDto)
+  mcpOverrides?: ChatMcpOverrideDto[];
 }

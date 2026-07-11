@@ -5,11 +5,14 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   AuthService,
+  ChatMcpOverrideDto,
   ChatMetadataDto,
   ChatMetadataService,
   ChatRequestDto,
   ChatsService,
   CreateChatMetadataDto,
+  CustomMcpDto,
+  MeDto,
   ReasoningDto,
 } from '../client';
 import { ChatMessage, ChatCompletionsService } from './openai-api/chat-completions.service';
@@ -18,12 +21,23 @@ import { OpenAiModelSelectorComponent } from './openai-api/model-selector.compon
 import { ChatSidebarComponent } from '../shared/components/chat-sidebar.component';
 import { ChatMessagesComponent } from '../shared/components/chat-messages.component';
 import { InfoComponent } from '../shared/components/info.component';
+import { McpConfigDialogComponent } from '../shared/components/mcp-config-dialog.component';
+import { SpinnerComponent } from '../shared/components/spinner.component';
 import { AppendedFile, OpenAiChatInputComponent } from './openai-api/chat-input.component';
 import { Observable, of, tap } from 'rxjs';
 import { ButtonComponent, IconButtonComponent, LabelComponent, TextInputComponent, ToggleComponent } from '../shared';
 import { TranslateModule } from '@ngx-translate/core';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroBars3, heroPlus, heroSparkles, heroUser, heroXMark } from '@ng-icons/heroicons/outline';
+import {
+  heroArrowPath,
+  heroBars3,
+  heroChevronDown,
+  heroCog6Tooth,
+  heroPlus,
+  heroSparkles,
+  heroUser,
+  heroXMark,
+} from '@ng-icons/heroicons/outline';
 import { BlobBackgroundDirective } from '../shared/directives/blob-background.directive';
 import { map } from 'rxjs/operators';
 import { OpenAiModelService } from './openai-model.service';
@@ -49,11 +63,24 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
     LabelComponent,
     TextInputComponent,
     ToggleComponent,
+    McpConfigDialogComponent,
+    SpinnerComponent,
     TranslateModule,
     NgIconComponent,
     BlobBackgroundDirective,
   ],
-  viewProviders: [provideIcons({ heroBars3, heroUser, heroPlus, heroXMark, heroSparkles })],
+  viewProviders: [
+    provideIcons({
+      heroBars3,
+      heroUser,
+      heroPlus,
+      heroXMark,
+      heroSparkles,
+      heroArrowPath,
+      heroChevronDown,
+      heroCog6Tooth,
+    }),
+  ],
   animations: [
     trigger('sidebarAnim', [
       transition(':enter', [
@@ -173,6 +200,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
             [chatList]="chatList()"
             [chatsLoading]="chatsLoading()"
             [currentChatId]="activeChat.currentChatId()"
+            [customMcps]="customMcps()"
             (chatOpened)="openChat($event)"
             (commitRename)="onRename($event)"
             (chatDeleted)="deleteChat($event)"
@@ -180,6 +208,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
             (saveCryptoSettings)="onSaveCryptoSettings($event)"
             (shareChat)="onShareChat($event)"
             (unshareChat)="onUnshareChat($event)"
+            (accountMcpsChange)="customMcps.set($event)"
             @sidebarAnim
             (@sidebarAnim.done)="clearAnimTransform($event)"
           />
@@ -387,7 +416,106 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
                         </div>
                       </div>
                     }
+                    <!-- MCP servers -->
+                    <div class="flex flex-col gap-1.5">
+                      <div class="flex items-center justify-between">
+                        <ui-label>{{ 'chatSettings.mcpServers' | translate }}</ui-label>
+                        <button
+                          type="button"
+                          class="flex items-center gap-1 text-[10px] text-text-muted hover:text-text-primary transition-colors"
+                          (click)="showMcpConfigDialog.set(true)"
+                        >
+                          <ng-icon name="heroCog6Tooth" class="w-3 h-3" />
+                          {{ 'chatSettings.manageMcps' | translate }}
+                        </button>
+                      </div>
+                      @if (customMcps().length) {
+                        <span class="text-[10px] text-text-muted -mt-1 block">{{
+                          'chatSettings.mcpServersHint' | translate
+                        }}</span>
+                        <div class="flex flex-col gap-2">
+                          @for (mcp of customMcps(); track mcp.id) {
+                            <div
+                              class="rounded-xl border border-border-default bg-surface-overlay/40 overflow-hidden transition-colors"
+                              [class.opacity-60]="newChatDisabledMcpIds().has(mcp.id)"
+                            >
+                              <div class="flex items-center gap-2 px-3 py-2.5">
+                                <button
+                                  type="button"
+                                  class="flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:cursor-default"
+                                  [disabled]="!mcp.availableTools.length"
+                                  (click)="toggleNewChatMcpExpanded(mcp.id)"
+                                >
+                                  @if (mcp.availableTools.length) {
+                                    <ng-icon
+                                      name="heroChevronDown"
+                                      class="w-3 h-3 shrink-0 text-text-muted transition-transform"
+                                      [class.rotate-180]="!isNewChatMcpExpanded(mcp.id)"
+                                    />
+                                  }
+                                  <span class="flex flex-col min-w-0">
+                                    <span class="text-xs font-medium text-text-primary truncate">{{
+                                      mcp.name
+                                    }}</span>
+                                    <span class="text-text-muted truncate" style="font-size:10px">{{
+                                      mcp.endpoint
+                                    }}</span>
+                                  </span>
+                                </button>
+                                <ui-icon-button
+                                  size="sm"
+                                  [title]="'info.mcpRefresh' | translate"
+                                  [disabled]="refreshingMcpId() === mcp.id"
+                                  (clicked)="refreshNewChatMcp(mcp)"
+                                >
+                                  @if (refreshingMcpId() === mcp.id) {
+                                    <app-spinner size="sm" />
+                                  } @else {
+                                    <ng-icon name="heroArrowPath" class="w-3 h-3" />
+                                  }
+                                </ui-icon-button>
+                                <ui-toggle
+                                  [ngModel]="!newChatDisabledMcpIds().has(mcp.id)"
+                                  [ngModelOptions]="{ standalone: true }"
+                                  (checkedChange)="toggleNewChatMcp(mcp.id, $event)"
+                                />
+                              </div>
+                              @if (isNewChatMcpExpanded(mcp.id) && mcp.availableTools.length) {
+                                <div
+                                  class="px-3 pb-3 pt-1 flex flex-wrap gap-1.5 border-t border-border-subtle"
+                                >
+                                  @for (tool of mcp.availableTools; track tool) {
+                                    <button
+                                      type="button"
+                                      class="flex items-center gap-1 pl-2 pr-2.5 py-1 rounded-lg border text-[10px] font-mono transition-colors mt-1.5"
+                                      [class]="
+                                        getNewChatAllowedTools(mcp).includes(tool)
+                                          ? 'border-accent/40 bg-accent-subtle text-accent'
+                                          : 'border-border-default text-text-muted hover:border-border-strong'
+                                      "
+                                      (click)="toggleNewChatTool(mcp, tool)"
+                                    >
+                                      {{ tool }}
+                                    </button>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      } @else {
+                        <p class="text-[10px] text-text-muted">{{ 'info.noMcpServers' | translate }}</p>
+                      }
+                    </div>
                   </div>
+                }
+
+                @if (showMcpConfigDialog()) {
+                  <app-mcp-config-dialog
+                    [customMcps]="customMcps()"
+                    (customMcpsChange)="customMcps.set($event)"
+                    (closed)="showMcpConfigDialog.set(false)"
+                  />
                 }
               </app-chat-messages>
             </div>
@@ -428,7 +556,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
               </ui-icon-button>
             </div>
             <div class="flex-1 overflow-hidden">
-              <app-info />
+              <app-info (userLoaded)="onUserLoaded($event)" />
             </div>
           </div>
         }
@@ -471,6 +599,15 @@ export class OpenAiApi implements OnDestroy, OnInit {
   readonly newChatUseCrypto = signal(false);
   readonly newChatUseInvoke = signal(true);
   readonly invokeAiModelPreference = signal<InvokeAiModelToUseEnum>('Dreamshaper 8');
+  /** User's account-level custom MCP servers, all enabled by default for a new chat. */
+  readonly customMcps = signal<CustomMcpDto[]>([]);
+  /** Servers the user opted out of for the chat currently being created. */
+  readonly newChatDisabledMcpIds = signal<Set<string>>(new Set());
+  /** Per-server tool selection overrides for the chat currently being created (mcpId -> allowedTools). */
+  readonly newChatToolOverrides = signal<Map<string, string[]>>(new Map());
+  private readonly newChatExpandedMcpIds = signal<Set<string>>(new Set());
+  readonly showMcpConfigDialog = signal(false);
+  readonly refreshingMcpId = signal<string | null>(null);
   newChatCryptoKey = '';
   newChatName = '';
   /** Two-way ngModel bridge for ui-toggle — kept in sync with newChatUseCrypto signal. */
@@ -521,6 +658,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         invokeAiModelToUse: this.invokeAiModelPreference(),
         useInvoke: this.newChatUseInvoke(),
         reasoningMode: this.modelService.reasoning()! as string,
+        mcpOverrides: this.buildNewChatMcpOverrides(),
       })
       .pipe(
         map((res) => res._id),
@@ -540,11 +678,22 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.infoRef()?.loadUser();
   }
 
+  /** Keeps this route's account snapshot (username, custom MCP servers) in sync
+   * whenever the info panel reloads or the user edits MCP servers there — so the
+   * New Chat dialog and chat settings dialog reflect changes without a refresh. */
+  onUserLoaded(me: MeDto): void {
+    this.currentUsername = me.username;
+    this.customMcps.set(me.customMcps ?? []);
+  }
+
   ngOnInit(): void {
     this.loadChatList();
     this.modelService.loadModels();
     this.authService.getMe().subscribe({
-      next: (me) => (this.currentUsername = me.username),
+      next: (me) => {
+        this.currentUsername = me.username;
+        this.customMcps.set(me.customMcps ?? []);
+      },
     });
 
     const chatId = this.route.snapshot.paramMap.get('chatId');
@@ -728,6 +877,66 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.loadChatMeta(chatId);
   }
 
+  toggleNewChatMcp(id: string, enabled: boolean): void {
+    this.newChatDisabledMcpIds.update((set) => {
+      const next = new Set(set);
+      enabled ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  isNewChatMcpExpanded(id: string): boolean {
+    return this.newChatExpandedMcpIds().has(id);
+  }
+
+  toggleNewChatMcpExpanded(id: string): void {
+    this.newChatExpandedMcpIds.update((set) => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  getNewChatAllowedTools(mcp: CustomMcpDto): string[] {
+    return this.newChatToolOverrides().get(mcp.id) ?? mcp.allowedTools;
+  }
+
+  toggleNewChatTool(mcp: CustomMcpDto, tool: string): void {
+    const current = this.getNewChatAllowedTools(mcp);
+    const next = current.includes(tool) ? current.filter((t) => t !== tool) : [...current, tool];
+    this.newChatToolOverrides.update((map) => new Map(map).set(mcp.id, next));
+  }
+
+  refreshNewChatMcp(mcp: CustomMcpDto): void {
+    this.refreshingMcpId.set(mcp.id);
+    this.authService.refreshCustomMcpServer(mcp.id).subscribe({
+      next: (updated) => {
+        this.customMcps.update((list) => list.map((m) => (m.id === mcp.id ? updated : m)));
+        this.newChatToolOverrides.update((map) => {
+          const override = map.get(mcp.id);
+          if (!override) return map;
+          const kept = override.filter((t) => updated.availableTools.includes(t));
+          const brandNew = updated.availableTools.filter((t) => !mcp.availableTools.includes(t));
+          return new Map(map).set(mcp.id, [...kept, ...brandNew]);
+        });
+        this.refreshingMcpId.set(null);
+      },
+      error: () => this.refreshingMcpId.set(null),
+    });
+  }
+
+  private buildNewChatMcpOverrides(): ChatMcpOverrideDto[] {
+    const disabled = this.newChatDisabledMcpIds();
+    const toolOverrides = this.newChatToolOverrides();
+    return this.customMcps()
+      .filter((mcp) => disabled.has(mcp.id) || toolOverrides.has(mcp.id))
+      .map((mcp) => ({
+        mcpId: mcp.id,
+        active: !disabled.has(mcp.id),
+        allowedTools: disabled.has(mcp.id) ? [] : (toolOverrides.get(mcp.id) ?? mcp.allowedTools),
+      }));
+  }
+
   newChat(): void {
     if (this.activeChat.streaming()) return;
     this.chatCompletionsService.chatMessages.set([]);
@@ -740,6 +949,8 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.newChatCryptoKey = '';
     this.newChatName = '';
     this.newChatNameMode.set('ai');
+    this.newChatDisabledMcpIds.set(new Set());
+    this.newChatToolOverrides.set(new Map());
   }
 
   // ── Messaging ─────────────────────────────────────────────────────────────
@@ -772,6 +983,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         openAiEndpointPreference: 'COMPLETION',
         invokeAiModelToUse: this.invokeAiModelPreference(),
         useInvoke: this.newChatUseInvoke(),
+        mcpOverrides: this.buildNewChatMcpOverrides(),
       },
     );
     this.chatInputRef?.clearFiles();
@@ -821,6 +1033,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
           chat.cryptoKey ?? '',
           chat.useInvoke ?? false,
           chat.invokeAiModelToUse ?? undefined,
+          chat.mcpOverrides ?? [],
         );
       },
       error: () => {
@@ -836,6 +1049,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     cryptoKey,
     useInvoke,
     invokeAiModelToUse,
+    mcpOverrides,
   }: {
     chatId: string;
     name: string;
@@ -843,9 +1057,17 @@ export class OpenAiApi implements OnDestroy, OnInit {
     cryptoKey: string;
     useInvoke: boolean;
     invokeAiModelToUse?: InvokeAiModelToUseEnum;
+    mcpOverrides?: ChatMcpOverrideDto[];
   }): void {
     this.chatMetaService
-      .updateChatMetadata(chatId, { name, useCrypto, cryptoKey, invokeAiModelToUse, useInvoke })
+      .updateChatMetadata(chatId, {
+        name,
+        useCrypto,
+        cryptoKey,
+        invokeAiModelToUse,
+        useInvoke,
+        mcpOverrides,
+      })
       .subscribe({
         next: () => {
           this.chatList.update((list) =>

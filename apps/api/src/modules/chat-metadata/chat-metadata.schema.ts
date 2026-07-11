@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EphemeralMcpIntegrationDto } from './dto/ephemeral-mcp-integration.dto';
+import { ChatMcpOverrideDto } from './dto/chat-mcp-override.dto';
 import { IsIn, IsOptional } from 'class-validator';
 import { SubscriptionType } from '../auth/user.schema';
 import { InvokeAiModel } from '../invoke/invoke.service';
@@ -82,6 +83,15 @@ export class ChatMetadata {
   /** MCP tool integrations configured for this session */
   @Prop({ required: false, default: [], type: [Object] })
   tools: EphemeralMcpIntegrationDto[];
+
+  /**
+   * Per-chat opt-out overrides for the user's account-level custom MCP
+   * servers (User.customMcps). A server with no entry here is enabled with
+   * all of its account-level allowed tools — overrides only need to record
+   * what was turned off for this specific chat.
+   */
+  @Prop({ required: false, default: [], type: [Object] })
+  mcpOverrides: ChatMcpOverrideDto[];
 
   @Prop({ required: false, type: Date })
   lastMessageSentAt: Date;
@@ -184,6 +194,9 @@ export class ChatMetadataDto {
 
   @ApiPropertyOptional({ type: [EphemeralMcpIntegrationDto] })
   tools: EphemeralMcpIntegrationDto[];
+
+  @ApiPropertyOptional({ type: [ChatMcpOverrideDto] })
+  mcpOverrides?: ChatMcpOverrideDto[];
 
   @ApiProperty()
   createdAt: Date;

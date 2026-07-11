@@ -31,6 +31,160 @@
         ]
       }
     },
+    "/auth/mcp-servers": {
+      "post": {
+        "description": "Connects to the given endpoint, fetches its name and tool list, and stores it (active + all tools allowed by default).",
+        "operationId": "addCustomMcpServer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCustomMcpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomMcpDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register a custom MCP server on the current account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/mcp-servers/{id}": {
+      "patch": {
+        "operationId": "updateCustomMcpServer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomMcpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomMcpDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No MCP server with this id"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Toggle a custom MCP server on/off or edit its allowed tools",
+        "tags": [
+          "auth"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteCustomMcpServer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server removed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a custom MCP server from the current account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/mcp-servers/{id}/refresh": {
+      "post": {
+        "description": "Re-connects to the server's endpoint and refreshes availableTools. Newly discovered tools are allowed by default; tools that disappeared are dropped from allowedTools; existing allow/deny choices are preserved.",
+        "operationId": "refreshCustomMcpServer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomMcpDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No MCP server with this id"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Re-discover a custom MCP server's tool list",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login",
@@ -1363,6 +1517,47 @@
       }
     },
     "schemas": {
+      "CustomMcpDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "availableTools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowedTools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "headers": {
+            "type": "object",
+            "description": "Custom HTTP headers sent to this MCP server"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "endpoint",
+          "active",
+          "availableTools",
+          "allowedTools"
+        ]
+      },
       "MeDto": {
         "type": "object",
         "properties": {
@@ -1387,6 +1582,12 @@
           },
           "tokenLimit": {
             "type": "number"
+          },
+          "customMcps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomMcpDto"
+            }
           }
         },
         "required": [
@@ -1396,8 +1597,40 @@
           "isActivated",
           "usedTokens",
           "tokenCountResetDate",
-          "tokenLimit"
+          "tokenLimit",
+          "customMcps"
         ]
+      },
+      "AddCustomMcpDto": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "endpoint"
+        ]
+      },
+      "UpdateCustomMcpDto": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "allowedTools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       },
       "LoginDto": {
         "type": "object",
@@ -1514,6 +1747,29 @@
           "server_url"
         ]
       },
+      "ChatMcpOverrideDto": {
+        "type": "object",
+        "properties": {
+          "mcpId": {
+            "type": "string",
+            "description": "References User.customMcps[].id"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "allowedTools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "mcpId",
+          "active",
+          "allowedTools"
+        ]
+      },
       "CreateChatMetadataDto": {
         "type": "object",
         "properties": {
@@ -1569,6 +1825,13 @@
           "lastMessageSentAt": {
             "format": "date-time",
             "type": "string"
+          },
+          "mcpOverrides": {
+            "description": "Opt-out overrides for the user's account-level custom MCP servers",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMcpOverrideDto"
+            }
           }
         },
         "required": [
@@ -1649,6 +1912,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EphemeralMcpIntegrationDto"
+            }
+          },
+          "mcpOverrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMcpOverrideDto"
             }
           },
           "createdAt": {
@@ -1773,6 +2042,13 @@
               "Dreamshaper 8",
               "Juggernaut XL v9"
             ]
+          },
+          "mcpOverrides": {
+            "description": "Opt-out overrides for the user's account-level custom MCP servers",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMcpOverrideDto"
+            }
           }
         }
       },
@@ -2523,7 +2799,7 @@
             "description": "A list of tool definitions that the model should be allowed to call.\n  \n  For the Chat Completions API, the list of tool definitions might look like:\n  \n  ```json\n  [\n    { \"type\": \"function\", \"function\": { \"name\": \"get_weather\" } },\n    { \"type\": \"function\", \"function\": { \"name\": \"get_time\" } }\n  ]\n  ```",
             "type": "array",
             "items": {
-              "type": "array"
+              "type": "object"
             }
           }
         },

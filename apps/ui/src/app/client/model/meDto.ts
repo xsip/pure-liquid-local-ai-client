@@ -8,8 +8,10 @@
  * Do not edit the class manually.
  */
 
+import { CustomMcpDto } from './customMcpDto';
 
-export interface MeDto { 
+
+export interface MeDto {
     username: string;
     role: string;
     subscription: string;
@@ -17,5 +19,6 @@ export interface MeDto {
     usedTokens: number;
     tokenCountResetDate: string;
     tokenLimit: number;
+    customMcps: Array<CustomMcpDto>;
 }
 

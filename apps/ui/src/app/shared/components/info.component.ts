@@ -3,11 +3,12 @@ import { Component, inject, OnInit, output, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AuthService, MeDto, ModelDto, OpenAIService } from '../../client';
+import { AuthService, CustomMcpDto, MeDto, ModelDto, OpenAIService } from '../../client';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { DarkModeToggleComponent } from '../../shared/components/ui/dark-mode-toggle.component';
 import { BadgeComponent } from '../../shared/components/ui/badge.component';
 import { ButtonComponent } from '../../shared/components/ui/button.component';
+import { McpConfigDialogComponent } from './mcp-config-dialog.component';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
   heroArrowPath,
@@ -15,6 +16,7 @@ import {
   heroChartBar,
   heroComputerDesktop,
   heroCog6Tooth,
+  heroServerStack,
 } from '@ng-icons/heroicons/outline';
 
 @Component({
@@ -47,10 +49,18 @@ import {
     DarkModeToggleComponent,
     BadgeComponent,
     ButtonComponent,
+    McpConfigDialogComponent,
     NgIconComponent,
   ],
   viewProviders: [
-    provideIcons({ heroArrowPath, heroUser, heroChartBar, heroComputerDesktop, heroCog6Tooth }),
+    provideIcons({
+      heroArrowPath,
+      heroUser,
+      heroChartBar,
+      heroComputerDesktop,
+      heroCog6Tooth,
+      heroServerStack,
+    }),
   ],
   template: `
     <div class="flex flex-col h-full overflow-y-auto p-4 gap-4 text-xs">
@@ -251,7 +261,33 @@ import {
           </div>
         }
       </section>
+
+      <!-- MCP configuration -->
+      <button
+        type="button"
+        (click)="showMcpDialog.set(true)"
+        class="flex items-center justify-between px-3 py-2.5 rounded-2xl border border-border-default bg-surface-raised hover:border-border-strong hover:bg-surface-overlay shadow-depth-sm hover-lift transition-colors"
+        @rowAnim
+      >
+        <span class="flex items-center gap-2 font-semibold text-text-primary">
+          <ng-icon name="heroServerStack" class="w-3.5 h-3.5 text-text-muted" />
+          {{ 'info.mcpServers' | translate }}
+        </span>
+        @if (user()?.customMcps?.length) {
+          <span class="px-1.5 py-0.5 rounded-full bg-surface-sunken text-text-muted text-[10px] font-mono">{{
+            user()!.customMcps.length
+          }}</span>
+        }
+      </button>
     </div>
+
+    @if (showMcpDialog()) {
+      <app-mcp-config-dialog
+        [customMcps]="user()?.customMcps ?? []"
+        (customMcpsChange)="onCustomMcpsChange($event)"
+        (closed)="showMcpDialog.set(false)"
+      />
+    }
   `,
 })
 export class InfoComponent implements OnInit {
@@ -268,6 +304,8 @@ export class InfoComponent implements OnInit {
   readonly loading = () => this.userLoading() || this.modelsLoading();
 
   readonly userLoaded = output<MeDto>();
+
+  readonly showMcpDialog = signal(false);
 
   tokenPercent(): number {
     const u = this.user();
@@ -299,6 +337,15 @@ export class InfoComponent implements OnInit {
         this.userLoading.set(false);
       },
     });
+  }
+
+  /** Called by the MCP config dialog whenever the server list changes — kept
+   * in sync locally and re-emitted so ancestor routes (e.g. the New Chat
+   * dialog) pick up the change immediately instead of needing a refresh. */
+  onCustomMcpsChange(customMcps: CustomMcpDto[]): void {
+    this.user.update((u) => (u ? { ...u, customMcps } : u));
+    const u = this.user();
+    if (u) this.userLoaded.emit(u);
   }
 
   private loadModels(): void {

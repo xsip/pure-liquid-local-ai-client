@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { CustomMcpDto } from './dto/custom-mcp.dto';
 
 export class MeDto {
   @ApiProperty()
@@ -15,4 +16,6 @@ export class MeDto {
   tokenCountResetDate: Date | null;
   @ApiProperty()
   tokenLimit: number;
+  @ApiProperty({ type: [CustomMcpDto] })
+  customMcps: CustomMcpDto[];
 }
