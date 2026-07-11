@@ -309,16 +309,17 @@ export class OpenAiService {
       userId,
       resolvedChatMetaId!,
     );
-    const messages: any[] =
-      history.length > 0
-        ? [...history]
-        : [
-            { role: 'system', content: instructions },
-            {
-              role: 'system',
-              content: `Current datetime (authoritative): ${formatted}. You MUST use this for any time-related questions.`,
-            },
-          ];
+    // The two leading system messages (tool instructions + current datetime) are
+    // regenerated on every request rather than reused from persisted history, so
+    // they stay accurate even as available tools change or time passes.
+    const messages: any[] = [
+      { role: 'system', content: instructions },
+      {
+        role: 'system',
+        content: `Current datetime (authoritative): ${formatted}. You MUST use this for any time-related questions.`,
+      },
+      ...history.filter((m: any) => m.role !== 'system'),
+    ];
     const incomingMessages = (dto.messages ?? []) as any[];
     messages.push(
       ...(chatMeta.useCrypto && chatMeta.cryptoKey
