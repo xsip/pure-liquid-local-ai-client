@@ -268,7 +268,7 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
                   >via {{ msg.providerLabel }}</span
                 >
               }
-              @if (msg.progress) {
+              @if (msg.progress && msg.streaming) {
                 <span class="text-tool-muted/60 shrink-0 text-[10px]">{{ msg.progress }} %</span>
               }
 
@@ -279,7 +279,7 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
               />
             </div>
 
-            @if (msg.progressMessage) {
+            @if (msg.progressMessage  && msg.streaming) {
               <div
                 class="flex  px-3 py-2 rounded-xl rounded-bl-sm text-xs transition-all duration-200 group w-full"
               >

@@ -3,7 +3,11 @@ import { Location } from '@angular/common';
 import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 import { interval, Subscription, switchMap } from 'rxjs';
-import { McpCallProgressEvent, OpenAiStreamService } from './completions-openai-stream.service';
+import {
+  McpCallProgressEvent,
+  McpReportProgressEvent,
+  OpenAiStreamService,
+} from './completions-openai-stream.service';
 import { OpenAiStreamApiInfoEvent, OpenAiStreamErrorEvent } from './openai-stream-events.model';
 import { ChatMetadataDto, ChatMetadataService, CreateChatMetadataDto, ReasoningEffort } from '../../client';
 import { AppendedFile } from './chat-input.component';
@@ -28,6 +32,9 @@ export interface ChatMessage {
   providerLabel?: string;
   collapsed?: boolean;
   username?: string;
+  progress?: number;
+  total?: number;
+  progressMessage?: string;
   itemId?: string; // track by OpenAI item id
 }
 
@@ -268,6 +275,26 @@ export class ChatCompletionsService {
                 collapsed: true,
                 toolArguments: e.arguments ?? copy[idx].toolArguments,
                 toolOutput: e.output,
+              };
+              return copy;
+            });
+            break;
+          }
+
+          case 'api_report_mcp_progress': {
+            const e = event as McpReportProgressEvent;
+            this.chatMessages.update((msgs) => {
+              const idx = this.lastIndexWhere(
+                msgs,
+                (m) => m.role === 'tool_call' && !!m.streaming,
+              );
+              if (idx === -1) return msgs;
+              const copy = [...msgs];
+              copy[idx] = {
+                ...copy[idx],
+                progress: Number(e.progress),
+                total: e.total != null ? Number(e.total) : copy[idx].total,
+                progressMessage: e.message ?? copy[idx].progressMessage,
               };
               return copy;
             });

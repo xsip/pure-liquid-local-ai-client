@@ -15,6 +15,14 @@ export interface McpCallProgressEvent {
   output?: string;
 }
 
+export interface McpReportProgressEvent {
+  type: 'api_report_mcp_progress';
+  progressToken: string;
+  progress: string | number;
+  total?: string | number;
+  message?: string;
+}
+
 export interface CreatedChatEvent {
   type: 'created_chat';
   result: string;
@@ -33,6 +41,7 @@ export interface ApiInfoEvent {
 export type OpenAiEvent =
   | ChatCompletionChunkDto
   | McpCallProgressEvent
+  | McpReportProgressEvent
   | CreatedChatEvent
   | UserMessageEchoEvent
   | ApiInfoEvent
@@ -285,6 +294,7 @@ export class OpenAiStreamService {
 
       case 'response.mcp_call.in_progress':
       case 'response.mcp_call.completed':
+      case 'api_report_mcp_progress':
         // handled by consumers via events$
         break;
 
