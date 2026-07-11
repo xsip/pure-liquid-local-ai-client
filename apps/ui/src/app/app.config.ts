@@ -8,12 +8,14 @@ import { authInterceptor } from './auth.interceptor';
 import { BASE_PATH } from './client';
 import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
+import { SHOW_CHAT_LINK } from '@app/shared-ui';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimations(),
     provideRouter(routes),
+    { provide: SHOW_CHAT_LINK, useValue: true },
     {
       provide: BASE_PATH,
       useValue: 'api',

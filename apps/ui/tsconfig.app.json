@@ -8,7 +8,7 @@
   "include": ["src/**/*.d.ts"],
   "references": [
     {
-      "path": "../../libs/shared/ui"
+      "path": "../../libs/shared/ui/tsconfig.lib.json"
     }
   ]
 }

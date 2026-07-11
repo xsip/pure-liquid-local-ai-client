@@ -1,6 +1,14 @@
-import { AfterViewInit, Component, OnDestroy, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  AfterViewInit,
+  Component,
+  inject,
+  OnDestroy,
+  PLATFORM_ID,
+  signal,
+} from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { TranslateModule } from '@ngx-translate/core';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
@@ -16,6 +24,7 @@ import {
   heroPhoto,
 } from '@ng-icons/heroicons/outline';
 import { DarkModeToggleComponent } from '../dark-mode-toggle/dark-mode-toggle.component';
+import { SHOW_CHAT_LINK } from '../tokens';
 
 @Component({
   selector: 'app-readme',
@@ -135,14 +144,16 @@ import { DarkModeToggleComponent } from '../dark-mode-toggle/dark-mode-toggle.co
             <!-- Theme toggle: reads .dark from <html> set by the app -->
             <ui-dark-mode-toggle />
 
-            <a
-              routerLink="/chat-openai"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-semibold text-xs transition-colors whitespace-nowrap"
-            >
-              <ng-icon name="heroChatBubbleOvalLeft" class="w-3.5 h-3.5" />
-              <span class="hidden sm:inline">Go to Chat</span>
-              <span class="sm:hidden">Chat</span>
-            </a>
+            @if (showChatLink) {
+              <a
+                routerLink="/chat-openai"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-semibold text-xs transition-colors whitespace-nowrap"
+              >
+                <ng-icon name="heroChatBubbleOvalLeft" class="w-3.5 h-3.5" />
+                <span class="hidden sm:inline">Go to Chat</span>
+                <span class="sm:hidden">Chat</span>
+              </a>
+            }
           </div>
         </div>
       </header>
@@ -265,14 +276,20 @@ import { DarkModeToggleComponent } from '../dark-mode-toggle/dark-mode-toggle.co
             </section>
 
             <!-- OVERVIEW IMAGE -->
-            <section>
-              <img
-                class="dark:hidden block"
-                src="chat-preview-light.png"
-                alt="chat overview light"
-              />
-              <img class="dark:block hidden" src="chat-preview-dark.png" alt="chat overview dark" />
-            </section>
+            @if (isBrowser) {
+              <section>
+                <img
+                  class="dark:hidden block"
+                  src="chat-preview-light.png"
+                  alt="chat overview light"
+                />
+                <img
+                  class="dark:block hidden"
+                  src="chat-preview-dark.png"
+                  alt="chat overview dark"
+                />
+              </section>
+            }
 
             <!-- OVERVIEW -->
             <section id="overview">
@@ -677,16 +694,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
                 JWT and current <code class="text-accent">chatId</code> so tools have full access to
                 the user's context.
               </p>
-              <img
-                class="dark:hidden block mb-2"
-                src="mcp-preview-light.png"
-                alt="chat overview light"
-              />
-              <img
-                class="dark:block hidden mb-2"
-                src="mcp-preview-dark.png"
-                alt="chat overview dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2"
+                  src="mcp-preview-light.png"
+                  alt="chat overview light"
+                />
+                <img
+                  class="dark:block hidden mb-2"
+                  src="mcp-preview-dark.png"
+                  alt="chat overview dark"
+                />
+              }
 
               <div class="space-y-3 mb-4">
                 <ng-container *ngFor="let tool of mcpTools">
@@ -726,16 +745,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
                 chat's settings dialog all read/write the same data, so changes made from any one of
                 them show up in the others immediately.
               </p>
-              <img
-                class="dark:hidden block mb-2"
-                src="mcp-management-dialog-light.png"
-                alt="chat overview light"
-              />
-              <img
-                class="dark:block hidden mb-2"
-                src="mcp-management-dialog-dark.png"
-                alt="chat overview dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2"
+                  src="mcp-management-dialog-light.png"
+                  alt="chat overview light"
+                />
+                <img
+                  class="dark:block hidden mb-2"
+                  src="mcp-management-dialog-dark.png"
+                  alt="chat overview dark"
+                />
+              }
               <div class="space-y-3 mb-4">
                 <ng-container *ngFor="let step of customMcpSteps">
                   <div
@@ -783,16 +804,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
                 streaming the chat response.
               </p>
 
-              <img
-                class="dark:hidden block mb-2"
-                src="mcp-progress-light.gif"
-                alt="chat overview light"
-              />
-              <img
-                class="dark:block hidden mb-2"
-                src="mcp-progress-dark.gif"
-                alt="chat overview dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2"
+                  src="mcp-progress-light.gif"
+                  alt="chat overview light"
+                />
+                <img
+                  class="dark:block hidden mb-2"
+                  src="mcp-progress-dark.gif"
+                  alt="chat overview dark"
+                />
+              }
 
               <div class="space-y-3 mb-4">
                 <ng-container *ngFor="let step of mcpProgressSteps">
@@ -842,16 +865,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
                 instance.
               </p>
 
-              <img
-                class="dark:hidden block mb-2"
-                src="chat-image-generator-light.png"
-                alt="chat overview light"
-              />
-              <img
-                class="dark:block hidden mb-2"
-                src="chat-image-generator-dark.png"
-                alt="chat overview dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2"
+                  src="chat-image-generator-light.png"
+                  alt="chat overview light"
+                />
+                <img
+                  class="dark:block hidden mb-2"
+                  src="chat-image-generator-dark.png"
+                  alt="chat overview dark"
+                />
+              }
               <div class="space-y-3">
                 <ng-container *ngFor="let step of invokeSteps">
                   <div
@@ -932,16 +957,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
                 <a href="#voice-transcription" class="text-accent underline">Voice Transcription</a>
                 below.
               </p>
-              <img
-                class="dark:hidden block mb-2"
-                src="chat-voice-preview-light.png"
-                alt="chat overview light"
-              />
-              <img
-                class="dark:block hidden mb-2"
-                src="chat-voice-preview-dark.png"
-                alt="chat overview dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2"
+                  src="chat-voice-preview-light.png"
+                  alt="chat overview light"
+                />
+                <img
+                  class="dark:block hidden mb-2"
+                  src="chat-voice-preview-dark.png"
+                  alt="chat overview dark"
+                />
+              }
               <div class="space-y-3">
                 <ng-container *ngFor="let step of voiceInputSteps">
                   <div
@@ -986,16 +1013,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
                 more reliable tool-calling/reasoning out of a model that technically accepts
                 <code class="text-accent">input_audio</code> but doesn't handle it as well as text.
               </p>
-              <img
-                class="dark:hidden block mb-2"
-                src="audio-transcribe-light.gif"
-                alt="chat overview light"
-              />
-              <img
-                class="dark:block hidden mb-2"
-                src="audio-transcribe-dark.gif"
-                alt="chat overview dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2"
+                  src="audio-transcribe-light.gif"
+                  alt="chat overview light"
+                />
+                <img
+                  class="dark:block hidden mb-2"
+                  src="audio-transcribe-dark.gif"
+                  alt="chat overview dark"
+                />
+              }
               <div class="space-y-3 mb-4">
                 <ng-container *ngFor="let step of voiceTranscriptionSteps">
                   <div
@@ -1215,16 +1244,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               </p>
 
               <h3 class="text-base font-semibold text-text-primary mb-2">User Management</h3>
-              <img
-                class="dark:hidden block mb-2 rounded-xl border border-border-default"
-                src="admin-users-preview-light.png"
-                alt="admin CMS user management light"
-              />
-              <img
-                class="dark:block hidden mb-6 rounded-xl border border-border-default"
-                src="admin-users-preview-dark.png"
-                alt="admin CMS user management dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2 rounded-xl border border-border-default"
+                  src="admin-users-preview-light.png"
+                  alt="admin CMS user management light"
+                />
+                <img
+                  class="dark:block hidden mb-6 rounded-xl border border-border-default"
+                  src="admin-users-preview-dark.png"
+                  alt="admin CMS user management dark"
+                />
+              }
               <p class="text-text-secondary mb-6">
                 List every user with role, subscription, activation status, and current token usage.
                 Create a user directly (bypassing the normal registration/activation-email flow),
@@ -1236,16 +1267,18 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
               <h3 class="text-base font-semibold text-text-primary mb-2">
                 Token Limit Config Management
               </h3>
-              <img
-                class="dark:hidden block mb-2 rounded-xl border border-border-default"
-                src="admin-tokens-preview-light.png"
-                alt="admin CMS token limit config management light"
-              />
-              <img
-                class="dark:block hidden mb-6 rounded-xl border border-border-default"
-                src="admin-tokens-preview-dark.png"
-                alt="admin CMS token limit config management dark"
-              />
+              @if (isBrowser) {
+                <img
+                  class="dark:hidden block mb-2 rounded-xl border border-border-default"
+                  src="admin-tokens-preview-light.png"
+                  alt="admin CMS token limit config management light"
+                />
+                <img
+                  class="dark:block hidden mb-6 rounded-xl border border-border-default"
+                  src="admin-tokens-preview-dark.png"
+                  alt="admin CMS token limit config management dark"
+                />
+              }
               <p class="text-text-secondary mb-6">
                 List, create, edit, and delete
                 <code class="text-accent">token_limit_configs</code> documents.
@@ -1360,6 +1393,46 @@ Angular UI (4200) ──SSE──▶ NestJS API (8888) ──/v1/chat/completion
   `,
 })
 export class ReadmeComponent implements AfterViewInit, OnDestroy {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly title = inject(Title);
+  private readonly meta = inject(Meta);
+
+  /** False during SSR — keeps the initial server-rendered payload free of
+   *  the (large, non-critical-for-SEO) screenshot/gif images. */
+  protected readonly isBrowser = isPlatformBrowser(this.platformId);
+
+  /** Only the `ui` app actually has a /chat-openai route to link to. */
+  protected readonly showChatLink = inject(SHOW_CHAT_LINK);
+
+  constructor() {
+    const description =
+      "A full-stack AI chat client that connects to any OpenAI-compatible local inference " +
+      'server (LM Studio, Ollama, llama.cpp, vLLM, ...) via the standard /v1/chat/completions ' +
+      'endpoint. Built with Angular, NestJS, and MongoDB, with first-class MCP (Model Context ' +
+      'Protocol) tool support, AI image generation via InvokeAI, image upload into chat, voice ' +
+      'message recording, and optional end-to-end AES message encryption.';
+
+    this.title.setTitle('Liquid Local AI Client — Full-stack AI Chat Client for Local LLMs');
+    this.meta.updateTag({ name: 'description', content: description });
+    this.meta.updateTag({
+      name: 'keywords',
+      content:
+        'LM Studio, Ollama, llama.cpp, vLLM, MCP, Model Context Protocol, local AI chat, ' +
+        'self-hosted LLM client, Angular, NestJS, InvokeAI',
+    });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this.meta.updateTag({
+      property: 'og:title',
+      content: 'Liquid Local AI Client',
+    });
+    this.meta.updateTag({ property: 'og:description', content: description });
+    this.meta.updateTag({ property: 'og:image', content: '/chat-preview-dark.png' });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: 'Liquid Local AI Client' });
+    this.meta.updateTag({ name: 'twitter:description', content: description });
+    this.meta.updateTag({ name: 'twitter:image', content: '/chat-preview-dark.png' });
+  }
+
   toggleTheme() {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -1392,6 +1465,8 @@ export class ReadmeComponent implements AfterViewInit, OnDestroy {
   private sectionObserver?: IntersectionObserver;
 
   ngAfterViewInit(): void {
+    if (!this.isBrowser) return;
+
     const sections = this.navSections
       .map((s) => document.getElementById(s.id))
       .filter((el): el is HTMLElement => !!el);

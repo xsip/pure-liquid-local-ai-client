@@ -23,6 +23,7 @@ export function readStoredTheme(): boolean {
  * persists it to localStorage.
  */
 export function applyTheme(isDark: boolean): void {
+  if (typeof document === 'undefined') return;
   document.documentElement.classList.toggle('dark', isDark);
   try {
     localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');

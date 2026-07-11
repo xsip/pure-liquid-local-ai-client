@@ -20,7 +20,12 @@
             "input": "apps/ui/public"
           }
         ],
-        "styles": ["apps/landing/src/tailwind.css", "apps/landing/src/styles.scss"]
+        "styles": ["apps/landing/src/tailwind.css", "apps/landing/src/styles.scss"],
+        "server": "apps/landing/src/main.server.ts",
+        "ssr": {
+          "entry": "apps/landing/src/server.ts"
+        },
+        "outputMode": "server"
       },
       "configurations": {
         "production": {
