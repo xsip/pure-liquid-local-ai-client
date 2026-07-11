@@ -49,6 +49,8 @@
     "encryptionKey": "Encryption Key",
     "encryptionKeyPlaceholder": "Enter encryption key…",
     "invokeHint": "Image generator",
+    "transcribeAudio": "Transcribe audio",
+    "transcribeAudioHint": "Show the transcript instead of the raw voice recording",
     "model": "AI Model",
     "modelHint": "The model you want to chat with",
     "invoke": "InvokeAI",
@@ -97,6 +99,7 @@
   },
   "messages": {
     "reply": "Reply",
+    "transcribed": "transcribed",
     "noMessages": "No messages yet",
     "resend": "↺ Resend",
     "toolArguments": "Arguments",

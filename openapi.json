@@ -1021,6 +1021,15 @@
         "operationId": "completionsStreamOpenAi",
         "parameters": [
           {
+            "name": "transcribeAudio",
+            "required": false,
+            "in": "query",
+            "description": "Transcribe input_audio parts for new chat",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "openAiEndpointPreference",
             "required": false,
             "in": "query",
@@ -1871,6 +1880,9 @@
               "Juggernaut XL v9"
             ]
           },
+          "transcribeAudio": {
+            "type": "boolean"
+          },
           "lastMessageSentAt": {
             "format": "date-time",
             "type": "string"
@@ -2020,6 +2032,10 @@
               "Juggernaut XL v9"
             ]
           },
+          "transcribeAudio": {
+            "type": "boolean",
+            "description": "When true, voice messages are transcribed by the model and shown as text instead of an audio bubble"
+          },
           "sharedWith": {
             "description": "ObjectIds of users granted access to this chat",
             "type": "array",
@@ -2095,6 +2111,9 @@
               "Dreamshaper 8",
               "Juggernaut XL v9"
             ]
+          },
+          "transcribeAudio": {
+            "type": "boolean"
           },
           "mcpOverrides": {
             "description": "Opt-out overrides for the user's account-level custom MCP servers",

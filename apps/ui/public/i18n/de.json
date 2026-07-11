@@ -49,6 +49,8 @@
     "encryptionKey": "Verschlüsselungsschlüssel",
     "invoke": "InvokeAI",
     "invokeHint": "Bild Generator",
+    "transcribeAudio": "Audio transkribieren",
+    "transcribeAudioHint": "Zeigt das Transkript anstelle der Sprachaufnahme an",
     "model": "AI Model",
     "modelHint": "Das model mit dem sie Chatten möchten",
     "invokeModel": "Invoke Model",
@@ -97,6 +99,7 @@
   },
   "messages": {
     "reply": "Antworten",
+    "transcribed": "transkribiert",
     "noMessages": "Noch keine Nachrichten",
     "resend": "↺ Erneut senden",
     "toolArguments": "Argumente",

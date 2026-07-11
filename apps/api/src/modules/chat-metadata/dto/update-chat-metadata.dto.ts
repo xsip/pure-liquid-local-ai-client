@@ -67,6 +67,11 @@ export class UpdateChatMetadataDto {
   @IsOptional()
   invokeAiModelToUse?: InvokeAiModel;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  transcribeAudio?: boolean;
+
   @ApiPropertyOptional({
     description: 'Opt-out overrides for the user\'s account-level custom MCP servers',
     type: [ChatMcpOverrideDto],

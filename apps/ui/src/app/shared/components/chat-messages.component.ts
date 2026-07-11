@@ -133,7 +133,7 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
 
     @for (msg of messages(); track $index) {
       @if (msg.role === 'user') {
-        @if (msg.audio) {
+        @if (msg.audio && !msg.audioHidden) {
           <div class="flex flex-col items-end gap-1" @userMsgAnim>
             @if (msg.username) {
               <span class="text-[10px] text-text-muted font-medium mr-1">{{ msg.username }}</span>
@@ -169,8 +169,13 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
           </div>
         } @else if (msg.text) {
           <div class="flex flex-col items-end gap-1" @userMsgAnim>
-            @if (msg.username) {
-              <span class="text-[10px] text-text-muted font-medium mr-1">{{ msg.username }}</span>
+            @if (msg.username || msg.audioHidden) {
+              <span class="text-[10px] text-text-muted font-medium mr-1">
+                {{ msg.username }}
+                @if (msg.audioHidden) {
+                  <span class="italic opacity-75">· {{ 'messages.transcribed' | translate }}</span>
+                }
+              </span>
             }
             <div
               class="min-w-0 max-w-[75%] text-text-primary rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-relaxed overflow-hidden"

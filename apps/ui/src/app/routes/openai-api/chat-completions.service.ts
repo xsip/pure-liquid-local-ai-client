@@ -15,6 +15,9 @@ export interface ChatMessage {
   image?: string;
   /** Data URL (audio/wav base64) for a recorded voice message. */
   audio?: string;
+  /** True when `audio` was transcribed server-side and should stay hidden
+   * behind its transcript (shown as `text`) instead of an audio player. */
+  audioHidden?: boolean;
   date?: Date;
   stats?: string;
   streaming?: boolean;
@@ -120,10 +123,11 @@ export class ChatCompletionsService {
       openAiEndpointPreference?: CreateChatMetadataDto.OpenAiEndpointPreferenceEnum;
       useInvoke?: boolean;
       invokeAiModelToUse?: InvokeAiModelToUseEnum;
+      transcribeAudio?: boolean;
       mcpOverrides?: Array<{ mcpId: string; active: boolean; allowedTools: string[] }>;
     },
   ): void {
-    let input = this.form.getRawValue().input!.trim();
+    let input = (this.form.getRawValue().input ?? '').trim();
     if ((!input && !appendedFiles?.length) || this.streaming() || this.locked()) return;
 
     this.lastUserInput.set(input);
@@ -367,6 +371,15 @@ export class ChatCompletionsService {
       onChatListRefresh();
     }));
 
+    // Audio-transcribe mode: swap the just-submitted audio bubble for its
+    // transcript once the backend parses it out of the model's response.
+    this.streamSubs.push(this.streamService.audioTranscript$.subscribe((transcript) => {
+      this.patchLast(
+        (m) => m.role === 'user' && !!m.audio && !m.audioHidden,
+        { text: transcript, audioHidden: true },
+      );
+    }));
+
     this.streamSubs.push(this.streamService.newChatCreated$.subscribe((result) => {
       if (this.currentChatId() !== result) {
         this.currentChatId.set(result);
@@ -408,8 +421,9 @@ export class ChatCompletionsService {
         const format = part.input_audio.format ?? 'wav';
         out.push({
           role: 'user',
-          text: '',
+          text: part.hidden && part.transcript ? part.transcript : '',
           audio: `data:audio/${format};base64,${part.input_audio.data}`,
+          audioHidden: !!(part.hidden && part.transcript),
           date: new Date(),
           username: 'You',
         });

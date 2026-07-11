@@ -14,6 +14,11 @@ export interface OpenAiStreamApiInfoEvent {
   message: string;
 }
 
+export interface AudioTranscriptEvent {
+  type: 'audio_transcript';
+  transcript: string;
+}
+
 export interface OpenAiChatEnd {
   responseId: string;
   model: string;

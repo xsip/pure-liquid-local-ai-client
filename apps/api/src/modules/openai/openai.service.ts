@@ -157,6 +157,7 @@ export class OpenAiService {
       letAiDecideChatName?: boolean;
       useInvoke?: boolean;
       invokeModel?: InvokeAiModel;
+      transcribeAudio?: boolean;
       mcpOverrides?: ChatMetadataDocument['mcpOverrides'];
     },
   ): Promise<void> {
@@ -197,6 +198,7 @@ export class OpenAiService {
           usedModel: dto.model!,
           useInvoke: newChatConfig?.useInvoke,
           invokeAiModelToUse: newChatConfig?.invokeModel,
+          transcribeAudio: newChatConfig?.transcribeAudio,
           lastMessageSentAt: new Date(),
           reasoningMode: dto.reasoning_effort ?? 'off',
           tools: [],
@@ -340,8 +342,15 @@ export class OpenAiService {
         Array.isArray(m?.content) &&
         m.content.some((part: any) => part?.type === 'input_audio'),
     );
+    // Per-chat opt-in: instead of answering directly, the model returns a
+    // JSON envelope with a verbatim transcript + its answer, so the UI can
+    // show the transcript in place of the raw audio bubble.
+    const transcribeMode = hasAudio && !!chatMeta.transcribeAudio;
     if (hasAudio) {
-      messages.push({ role: 'system', content: this.audioInstructions });
+      messages.push({
+        role: 'system',
+        content: transcribeMode ? this.audioTranscribeInstructions : this.audioInstructions,
+      });
     }
     messages.push(
       ...(chatMeta.useCrypto && chatMeta.cryptoKey
@@ -393,6 +402,7 @@ export class OpenAiService {
 
     try {
       for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+
         const stream = (await this.openAi.chat.completions.create({
           model: dto.model,
           messages,
@@ -412,7 +422,12 @@ export class OpenAiService {
         let finishReason: string | null = null;
 
         for await (const chunk of stream) {
-          this.safeWrite(res, `data: ${JSON.stringify(chunk)}\n\n`, resolvedChatMetaId);
+          // In transcribe mode the model's raw output is a JSON envelope, not
+          // user-facing text — don't forward it live, it gets unwrapped and
+          // re-emitted as synthetic chunks once the full response is parsed.
+          if (!transcribeMode) {
+            this.safeWrite(res, `data: ${JSON.stringify(chunk)}\n\n`, resolvedChatMetaId);
+          }
 
           if (chunk.usage) {
             totalTokensUsed += chunk.usage.total_tokens ?? 0;
@@ -498,9 +513,60 @@ export class OpenAiService {
           continue;
         }
 
+        let finalContent = assembledContent;
+        if (transcribeMode) {
+          const { transcript, response } = this.parseAudioTranscriptEnvelope(assembledContent);
+          finalContent = response;
+
+          // Stamp the transcript onto the original input_audio part(s) so it's
+          // persisted alongside the audio and can be shown instead of it.
+          if (transcript) {
+            for (const m of incomingMessages) {
+              if (m.role !== 'user' || !Array.isArray(m.content)) continue;
+              for (const part of m.content) {
+                if (part?.type === 'input_audio') {
+                  part.transcript = transcript;
+                  part.hidden = true;
+                }
+              }
+            }
+            this.writeSseEvent(
+              res,
+              'audio_transcript',
+              { type: 'audio_transcript', transcript },
+              resolvedChatMetaId,
+            );
+          }
+
+          // Re-emit the unwrapped answer as ordinary content-delta chunks so the
+          // client's existing chunk-handling pipeline (typing effect, chatEnd)
+          // needs no special casing for transcribe mode.
+          const fakeId = `transcribe-${requestId}`;
+          this.safeWrite(
+            res,
+            `data: ${JSON.stringify({
+              id: fakeId,
+              object: 'chat.completion.chunk',
+              model: dto.model,
+              choices: [{ index: 0, delta: { content: finalContent }, finish_reason: null }],
+            })}\n\n`,
+            resolvedChatMetaId,
+          );
+          this.safeWrite(
+            res,
+            `data: ${JSON.stringify({
+              id: fakeId,
+              object: 'chat.completion.chunk',
+              model: dto.model,
+              choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+            })}\n\n`,
+            resolvedChatMetaId,
+          );
+        }
+
         messages.push({
           role: 'assistant',
-          content: assembledContent,
+          content: finalContent,
           ...(assembledReasoning
             ? { reasoning_content: assembledReasoning }
             : {}),
@@ -837,6 +903,29 @@ Listen to it and treat what was said as the user's actual message — respond to
 the spoken content directly, the same way you would to typed text. Any
 accompanying text content is additional context, not a replacement for the audio.`;
 
+  private readonly audioTranscribeInstructions = `
+The user's message contains an input_audio content part.
+
+Your first task is to produce a verbatim transcription of everything spoken in the audio.
+
+Your second task is to answer the user's request based on that transcription.
+
+Return ONLY the following JSON object.
+
+{
+  "transcript": "<exact transcription>",
+  "response": "<your response to the user>"
+}
+
+Rules:
+- The transcript must be verbatim.
+- Do not summarize the transcript.
+- Preserve punctuation where appropriate.
+- If speech is unintelligible, use [inaudible].
+- Markdown should only be used WITHIN the "transcript" or "response" But only respond with this object
+- Do not wrap the JSON in code fences.
+- Output nothing except the JSON object.`;
+
   private readonly decryptToolInstructions = `
 You MUST follow these rules EXACTLY:
 
@@ -859,6 +948,29 @@ STEP 3 — FINAL RESPONSE
 
 The final response must be a direct answer to the decrypted message, not a repetition of it.
 `;
+
+  /**
+   * Unwraps the `{transcript, response}` JSON envelope the model was asked to
+   * produce for audio-transcribe mode. Falls back to treating the raw output
+   * as the response (no transcript) if the model didn't comply — degrades
+   * gracefully rather than breaking the turn.
+   */
+  private parseAudioTranscriptEnvelope(
+    raw: string,
+  ): { transcript?: string; response: string } {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.response === 'string') {
+        return {
+          transcript: typeof parsed.transcript === 'string' ? parsed.transcript : undefined,
+          response: parsed.response,
+        };
+      }
+    } catch {
+      // model didn't return valid JSON — fall through
+    }
+    return { response: raw };
+  }
 
   private writeSseEvent(
     res: Response,

@@ -417,6 +417,7 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
         [loading]="settingsLoading()"
         [showCrypto]="client() === 'OPENAI'"
         [showInvoke]="client() === 'OPENAI'"
+        [showTranscribeAudio]="client() === 'OPENAI'"
         (saved)="onSettingsSaved($event)"
         (closed)="closeSettings()"
         (accountMcpsChange)="accountMcpsChange.emit($event)"
@@ -625,6 +626,7 @@ export class ChatSidebarComponent {
       cryptoKey: '',
       useInvoke: chat.useInvoke ?? false,
       invokeAiModelToUse: chat.invokeAiModelToUse,
+      transcribeAudio: chat.transcribeAudio ?? false,
       customMcps: this.customMcps(),
       mcpOverrides: chat.mcpOverrides ?? [],
     });
@@ -639,6 +641,7 @@ export class ChatSidebarComponent {
     useInvoke: boolean,
     invokeAiModelToUse?: InvokeAiModelToUseEnum,
     mcpOverrides?: ChatMcpOverrideDto[],
+    transcribeAudio?: boolean,
   ): void {
     this.settingsModal.update((m) =>
       m
@@ -650,6 +653,7 @@ export class ChatSidebarComponent {
             invokeAiModelToUse,
             useInvoke,
             mcpOverrides: mcpOverrides ?? m.mcpOverrides,
+            transcribeAudio: transcribeAudio ?? m.transcribeAudio,
           }
         : null,
     );

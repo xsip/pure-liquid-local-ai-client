@@ -38,6 +38,10 @@ export interface ChatMetadataDto {
     useInvoke?: boolean;
     invokeAiModelToUse?: ChatMetadataDto.InvokeAiModelToUseEnum;
     /**
+     * When true, voice messages are transcribed by the model and shown as text instead of an audio bubble
+     */
+    transcribeAudio?: boolean;
+    /**
      * ObjectIds of users granted access to this chat
      */
     sharedWith?: Array<string>;

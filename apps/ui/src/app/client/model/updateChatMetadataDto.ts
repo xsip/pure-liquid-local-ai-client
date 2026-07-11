@@ -22,6 +22,7 @@ export interface UpdateChatMetadataDto {
     openAiEndpointPreference?: UpdateChatMetadataDto.OpenAiEndpointPreferenceEnum;
     useInvoke?: boolean;
     invokeAiModelToUse?: UpdateChatMetadataDto.InvokeAiModelToUseEnum;
+    transcribeAudio?: boolean;
     /**
      * Opt-out overrides for the user\'s account-level custom MCP servers
      */

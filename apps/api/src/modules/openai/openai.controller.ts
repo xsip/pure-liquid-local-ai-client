@@ -110,6 +110,12 @@ export class OpenaiController {
     required: false,
     description: 'openAiEndpointPreference for new chat',
   })
+  @ApiQuery({
+    name: 'transcribeAudio',
+    type: 'boolean',
+    required: false,
+    description: 'Transcribe input_audio parts for new chat',
+  })
   @ApiBody({
     schema: {
       oneOf: [
@@ -149,6 +155,7 @@ export class OpenaiController {
       letAiDecideChatName?: boolean;
       useInvoke?: boolean;
       invokeModel?: InvokeAiModel;
+      transcribeAudio?: boolean;
       mcpOverrides?: string;
     },
   ): Promise<void> {
@@ -191,6 +198,9 @@ export class OpenaiController {
           query?.letAiDecideChatName === true,
         useInvoke:
           (query?.useInvoke as unknown) === 'true' || query?.useInvoke === true,
+        transcribeAudio:
+          (query?.transcribeAudio as unknown) === 'true' ||
+          query?.transcribeAudio === true,
         mcpOverrides: this.parseMcpOverrides(query?.mcpOverrides),
       } as any,
     );

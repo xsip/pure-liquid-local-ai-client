@@ -17,6 +17,9 @@ export interface ChatMessage {
   image?: string;
   /** Data URL (audio/wav base64) for a recorded voice message. */
   audio?: string;
+  /** True when `audio` was transcribed server-side and should stay hidden
+   * behind its transcript (shown as `text`) instead of an audio player. */
+  audioHidden?: boolean;
   file?: string;
   date?: Date;
   username?: string;

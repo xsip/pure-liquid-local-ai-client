@@ -118,6 +118,11 @@ export class ChatMetadata {
   @Prop({ required: false, type: Boolean })
   useInvoke?: boolean;
 
+  /** When true, incoming `input_audio` parts are transcribed by the model and
+   * the transcript is shown in the UI instead of the raw audio bubble. */
+  @Prop({ required: false, type: Boolean, default: false })
+  transcribeAudio?: boolean;
+
   @Prop({
     required: false,
     enum: Object.values(InvokeAiModel),
@@ -240,6 +245,12 @@ export class ChatMetadataDto {
     enum: InvokeAiModel,
   })
   invokeAiModelToUse?: InvokeAiModel;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, voice messages are transcribed by the model and shown as text instead of an audio bubble',
+  })
+  transcribeAudio?: boolean;
 
   @ApiPropertyOptional({
     type: [String],

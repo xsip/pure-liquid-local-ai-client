@@ -23,6 +23,7 @@ export interface ChatSettingsData {
   cryptoKey: string;
   useInvoke: boolean;
   invokeAiModelToUse?: InvokeAiModelToUseEnum;
+  transcribeAudio?: boolean;
   customMcps: CustomMcpDto[];
   mcpOverrides: ChatMcpOverrideDto[];
 }
@@ -34,6 +35,7 @@ export interface ChatSettingsSaveEvent {
   cryptoKey: string;
   useInvoke: boolean;
   invokeAiModelToUse?: InvokeAiModelToUseEnum;
+  transcribeAudio?: boolean;
   mcpOverrides: ChatMcpOverrideDto[];
 }
 
@@ -156,6 +158,19 @@ interface McpUiState {
           }
         }
 
+        @if (showTranscribeAudio()) {
+          <!-- Audio transcription toggle -->
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <ui-label>{{ 'chatSettings.transcribeAudio' | translate }}</ui-label>
+              <span class="text-[10px] text-text-muted mt-0.5 block">{{
+                'chatSettings.transcribeAudioHint' | translate
+              }}</span>
+            </div>
+            <ui-toggle [(ngModel)]="localTranscribeAudio" activeColor="bg-amber-500" />
+          </div>
+        }
+
         <div class="mb-4 mt-2">
           <div class="flex items-center justify-between mb-1.5">
             <ui-label>{{ 'chatSettings.mcpServers' | translate }}</ui-label>
@@ -270,6 +285,7 @@ export class ChatSettingsDialogComponent implements OnChanges, OnInit {
   readonly loading = input<boolean>(false);
   readonly showCrypto = input<boolean>(false);
   readonly showInvoke = input<boolean>(false);
+  readonly showTranscribeAudio = input<boolean>(false);
 
   readonly saved = output<ChatSettingsSaveEvent>();
   readonly closed = output<void>();
@@ -285,6 +301,7 @@ export class ChatSettingsDialogComponent implements OnChanges, OnInit {
   localUseInvoke = false;
   localCryptoKey = '';
   localInvokeAiModelPreference?: InvokeAiModelToUseEnum;
+  localTranscribeAudio = false;
   localMcpState: McpUiState[] = [];
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -302,6 +319,7 @@ export class ChatSettingsDialogComponent implements OnChanges, OnInit {
     this.localCryptoKey = d.cryptoKey;
     this.localUseInvoke = d.useInvoke;
     this.localInvokeAiModelPreference = d.invokeAiModelToUse;
+    this.localTranscribeAudio = d.transcribeAudio ?? false;
 
     this.localMcpState = (d.customMcps ?? []).map((mcp) => {
       const override = (d.mcpOverrides ?? []).find((o) => o.mcpId === mcp.id);
@@ -372,6 +390,7 @@ export class ChatSettingsDialogComponent implements OnChanges, OnInit {
       cryptoKey: this.localCryptoKey,
       useInvoke: this.localUseInvoke,
       invokeAiModelToUse: this.localInvokeAiModelPreference,
+      transcribeAudio: this.localTranscribeAudio,
       mcpOverrides,
     });
   }

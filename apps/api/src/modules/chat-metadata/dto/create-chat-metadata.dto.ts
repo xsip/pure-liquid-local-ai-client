@@ -80,6 +80,11 @@ export class CreateChatMetadataDto {
   @IsOptional()
   invokeAiModelToUse?: InvokeAiModel;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  transcribeAudio?: boolean;
+
   @ApiPropertyOptional({ type: Date })
   @IsOptional()
   @IsDate()

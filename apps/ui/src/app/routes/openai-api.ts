@@ -416,6 +416,22 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
                         </div>
                       </div>
                     }
+                    <!-- Audio transcription toggle -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex flex-col items-start">
+                        <ui-label>{{ 'chatSettings.transcribeAudio' | translate }}</ui-label>
+                        <span class="text-[10px] text-text-muted mt-0.5 block">{{
+                          'chatSettings.transcribeAudioHint' | translate
+                        }}</span>
+                      </div>
+                      <ui-toggle
+                        [ngModel]="newChatTranscribeAudio()"
+                        [ngModelOptions]="{ standalone: true }"
+                        activeColor="bg-amber-500"
+                        (checkedChange)="newChatTranscribeAudio.set($event)"
+                      />
+                    </div>
+
                     <!-- MCP servers -->
                     <div class="flex flex-col gap-1.5">
                       <div class="flex items-center justify-between">
@@ -599,6 +615,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     signal<CreateChatMetadataDto.OpenAiEndpointPreferenceEnum>('COMPLETION');
   readonly newChatUseCrypto = signal(false);
   readonly newChatUseInvoke = signal(true);
+  readonly newChatTranscribeAudio = signal(false);
   readonly invokeAiModelPreference = signal<InvokeAiModelToUseEnum>('Dreamshaper 8');
   /** User's account-level custom MCP servers, all enabled by default for a new chat. */
   readonly customMcps = signal<CustomMcpDto[]>([]);
@@ -663,6 +680,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         openAiEndpointPreference: this.newChatEndpointPreference(),
         invokeAiModelToUse: this.invokeAiModelPreference(),
         useInvoke: this.newChatUseInvoke(),
+        transcribeAudio: this.newChatTranscribeAudio(),
         reasoningMode: this.modelService.reasoning()! as string,
         mcpOverrides: this.buildNewChatMcpOverrides(),
       })
@@ -848,8 +866,9 @@ export class OpenAiApi implements OnDestroy, OnInit {
                 const format = part.input_audio.format ?? 'wav';
                 messages.push({
                   role: 'user',
-                  text: '',
+                  text: part.hidden && part.transcript ? part.transcript : '',
                   audio: `data:audio/${format};base64,${part.input_audio.data}`,
+                  audioHidden: !!(part.hidden && part.transcript),
                   date,
                   username,
                 });
@@ -1008,6 +1027,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.newChatNameMode.set('ai');
     this.newChatDisabledMcpIds.set(new Set());
     this.newChatToolOverrides.set(new Map());
+    this.newChatTranscribeAudio.set(false);
   }
 
   // ── Messaging ─────────────────────────────────────────────────────────────
@@ -1040,6 +1060,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         openAiEndpointPreference: 'COMPLETION',
         invokeAiModelToUse: this.invokeAiModelPreference(),
         useInvoke: this.newChatUseInvoke(),
+        transcribeAudio: this.newChatTranscribeAudio(),
         mcpOverrides: this.buildNewChatMcpOverrides(),
       },
     );
@@ -1091,6 +1112,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
           chat.useInvoke ?? false,
           chat.invokeAiModelToUse ?? undefined,
           chat.mcpOverrides ?? [],
+          chat.transcribeAudio ?? false,
         );
       },
       error: () => {
@@ -1107,6 +1129,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     useInvoke,
     invokeAiModelToUse,
     mcpOverrides,
+    transcribeAudio,
   }: {
     chatId: string;
     name: string;
@@ -1115,6 +1138,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     useInvoke: boolean;
     invokeAiModelToUse?: InvokeAiModelToUseEnum;
     mcpOverrides?: ChatMcpOverrideDto[];
+    transcribeAudio?: boolean;
   }): void {
     this.chatMetaService
       .updateChatMetadata(chatId, {
@@ -1124,6 +1148,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         invokeAiModelToUse,
         useInvoke,
         mcpOverrides,
+        transcribeAudio,
       })
       .subscribe({
         next: () => {

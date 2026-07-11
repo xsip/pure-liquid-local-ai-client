@@ -34,6 +34,7 @@ export interface CreateChatMetadataDto {
     openAiEndpointPreference?: CreateChatMetadataDto.OpenAiEndpointPreferenceEnum;
     useInvoke?: boolean;
     invokeAiModelToUse?: CreateChatMetadataDto.InvokeAiModelToUseEnum;
+    transcribeAudio?: boolean;
     lastMessageSentAt?: string;
     /**
      * Opt-out overrides for the user\'s account-level custom MCP servers

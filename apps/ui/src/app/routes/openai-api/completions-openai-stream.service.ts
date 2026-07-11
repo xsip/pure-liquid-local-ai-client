@@ -6,7 +6,7 @@ import {
   CompletionsStreamOpenAiRequest,
   CreateChatMetadataDto,
 } from '../../client';
-import { OpenAiChatEnd, OpenAiStreamErrorEvent } from './openai-stream-events.model';
+import { AudioTranscriptEvent, OpenAiChatEnd, OpenAiStreamErrorEvent } from './openai-stream-events.model';
 
 export interface McpCallProgressEvent {
   type: 'response.mcp_call.in_progress' | 'response.mcp_call.completed';
@@ -36,6 +36,7 @@ export type OpenAiEvent =
   | CreatedChatEvent
   | UserMessageEchoEvent
   | ApiInfoEvent
+  | AudioTranscriptEvent
   | OpenAiStreamErrorEvent;
 
 // ---------------------------------------------------------------------------
@@ -50,6 +51,7 @@ export class OpenAiStreamService {
   private _chatEnd$ = new ReplaySubject<OpenAiChatEnd>(1);
   private _chatCreated$ = new ReplaySubject<string>(1);
   private _userMessageEcho$ = new ReplaySubject<any[]>(1);
+  private _audioTranscript$ = new ReplaySubject<string>(1);
 
   get events$(): Observable<OpenAiEvent> {
     return this._events$.asObservable();
@@ -69,6 +71,9 @@ export class OpenAiStreamService {
   get userMessageEcho$(): Observable<any[]> {
     return this._userMessageEcho$.asObservable();
   }
+  get audioTranscript$(): Observable<string> {
+    return this._audioTranscript$.asObservable();
+  }
 
   router = inject(Router);
 
@@ -87,6 +92,7 @@ export class OpenAiStreamService {
       openAiEndpointPreference?: CreateChatMetadataDto.OpenAiEndpointPreferenceEnum;
       useInvoke?: boolean;
       invokeAiModelToUse?: string;
+      transcribeAudio?: boolean;
       mcpOverrides?: Array<{ mcpId: string; active: boolean; allowedTools: string[] }>;
     },
   ): Promise<void> {
@@ -107,6 +113,8 @@ export class OpenAiStreamService {
           params.set('useInvoke', String(newChatOptions.useInvoke));
         if (newChatOptions.invokeAiModelToUse)
           params.set('invokeModel', newChatOptions.invokeAiModelToUse);
+        if (newChatOptions.transcribeAudio != null)
+          params.set('transcribeAudio', String(newChatOptions.transcribeAudio));
         if (newChatOptions.mcpOverrides?.length)
           params.set('mcpOverrides', JSON.stringify(newChatOptions.mcpOverrides));
       }
@@ -263,6 +271,10 @@ export class OpenAiStreamService {
         this._userMessageEcho$.complete();
         break;
 
+      case 'audio_transcript':
+        this._audioTranscript$.next((event as AudioTranscriptEvent).transcript);
+        break;
+
       case 'error':
         console.error(
           '[OpenAiStreamService] Stream error:',
@@ -312,11 +324,13 @@ export class OpenAiStreamService {
     this._messageDelta$.complete();
     this._reasoningDelta$.complete();
     this._userMessageEcho$.complete();
+    this._audioTranscript$.complete();
     this._events$ = new ReplaySubject<OpenAiEvent>(Infinity);
     this._messageDelta$ = new ReplaySubject<string>(Infinity);
     this._reasoningDelta$ = new ReplaySubject<string>(Infinity);
     this._chatEnd$ = new ReplaySubject<OpenAiChatEnd>(1);
     this._chatCreated$ = new ReplaySubject<string>(1);
     this._userMessageEcho$ = new ReplaySubject<any[]>(1);
+    this._audioTranscript$ = new ReplaySubject<string>(1);
   }
 }
