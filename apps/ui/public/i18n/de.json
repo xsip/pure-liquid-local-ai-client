@@ -51,6 +51,8 @@
     "invokeHint": "Bild Generator",
     "transcribeAudio": "Audio transkribieren",
     "transcribeAudioHint": "Zeigt das Transkript anstelle der Sprachaufnahme an",
+    "toolsRequireApproval": "Tool-Freigabe erforderlich",
+    "toolsRequireApprovalHint": "Vor der Ausführung eines Tools anhalten, um es freizugeben oder abzulehnen",
     "model": "AI Model",
     "modelHint": "Das model mit dem sie Chatten möchten",
     "invokeModel": "Invoke Model",
@@ -66,6 +68,12 @@
     "mcpServers": "MCP-Server",
     "mcpServersHint": "Standardmäßig aktiviert — hier abwählen",
     "manageMcps": "MCPs verwalten"
+  },
+  "toolApproval": {
+    "title": "Möchte ausführen",
+    "once": "Einmal erlauben",
+    "always": "Immer erlauben",
+    "deny": "Ablehnen"
   },
   "chatInput": {
     "placeholder": "Prompt eingeben...",

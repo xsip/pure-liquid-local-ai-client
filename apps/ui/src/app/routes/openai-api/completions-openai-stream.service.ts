@@ -38,6 +38,13 @@ export interface ApiInfoEvent {
   message: string;
 }
 
+export interface ToolApprovalRequiredEvent {
+  type: 'response.tool_approval.required';
+  requestId: string;
+  name: string;
+  arguments?: Record<string, unknown>;
+}
+
 export type OpenAiEvent =
   | ChatCompletionChunkDto
   | McpCallProgressEvent
@@ -45,6 +52,7 @@ export type OpenAiEvent =
   | CreatedChatEvent
   | UserMessageEchoEvent
   | ApiInfoEvent
+  | ToolApprovalRequiredEvent
   | AudioTranscriptEvent
   | OpenAiStreamErrorEvent;
 
@@ -102,6 +110,7 @@ export class OpenAiStreamService {
       useInvoke?: boolean;
       invokeAiModelToUse?: string;
       transcribeAudio?: boolean;
+      toolsRequireApproval?: boolean;
       mcpOverrides?: Array<{ mcpId: string; active: boolean; allowedTools: string[] }>;
     },
   ): Promise<void> {
@@ -124,6 +133,8 @@ export class OpenAiStreamService {
           params.set('invokeModel', newChatOptions.invokeAiModelToUse);
         if (newChatOptions.transcribeAudio != null)
           params.set('transcribeAudio', String(newChatOptions.transcribeAudio));
+        if (newChatOptions.toolsRequireApproval != null)
+          params.set('toolsRequireApproval', String(newChatOptions.toolsRequireApproval));
         if (newChatOptions.mcpOverrides?.length)
           params.set('mcpOverrides', JSON.stringify(newChatOptions.mcpOverrides));
       }

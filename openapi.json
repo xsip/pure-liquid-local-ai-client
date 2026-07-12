@@ -1021,6 +1021,15 @@
         "operationId": "completionsStreamOpenAi",
         "parameters": [
           {
+            "name": "toolsRequireApproval",
+            "required": false,
+            "in": "query",
+            "description": "Pause tool/MCP calls for user approval for new chat",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "transcribeAudio",
             "required": false,
             "in": "query",
@@ -1154,6 +1163,58 @@
           }
         ],
         "summary": "Resume an in-flight chat generation as SSE",
+        "tags": [
+          "OpenAI"
+        ]
+      }
+    },
+    "/openai/tool-approval/{requestId}": {
+      "post": {
+        "description": "Approves, denies, or always-allows a tool call the server is currently awaiting (chat has `toolsRequireApproval` enabled). No-op if the request id is unknown, e.g. already resolved or the generation ended.",
+        "operationId": "resolveToolApprovalOpenAi",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveToolApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "resolved": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resolve a pending tool-approval request",
         "tags": [
           "OpenAI"
         ]
@@ -1883,6 +1944,9 @@
           "transcribeAudio": {
             "type": "boolean"
           },
+          "toolsRequireApproval": {
+            "type": "boolean"
+          },
           "lastMessageSentAt": {
             "format": "date-time",
             "type": "string"
@@ -2036,6 +2100,10 @@
             "type": "boolean",
             "description": "When true, voice messages are transcribed by the model and shown as text instead of an audio bubble"
           },
+          "toolsRequireApproval": {
+            "type": "boolean",
+            "description": "When true, tool/MCP calls in this chat pause and wait for user approval before running"
+          },
           "sharedWith": {
             "description": "ObjectIds of users granted access to this chat",
             "type": "array",
@@ -2113,6 +2181,9 @@
             ]
           },
           "transcribeAudio": {
+            "type": "boolean"
+          },
+          "toolsRequireApproval": {
             "type": "boolean"
           },
           "mcpOverrides": {
@@ -4052,6 +4123,22 @@
           "created",
           "model",
           "object"
+        ]
+      },
+      "ResolveToolApprovalDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "deny",
+              "always"
+            ]
+          }
+        },
+        "required": [
+          "decision"
         ]
       },
       "ChatCompletionDto": {

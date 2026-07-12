@@ -22,6 +22,10 @@ import { ChatCompletionDto } from '../model/chatCompletionDto';
 import { CompletionsStreamOpenAiRequest } from '../model/completionsStreamOpenAiRequest';
 // @ts-ignore
 import { ModelOpenAiDto } from '../model/modelOpenAiDto';
+// @ts-ignore
+import { ResolveToolApprovalDto } from '../model/resolveToolApprovalDto';
+// @ts-ignore
+import { ResolveToolApprovalOpenAi200Response } from '../model/resolveToolApprovalOpenAi200Response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -167,6 +171,8 @@ export class OpenAIService extends BaseService {
      * Streams the LM Studio response as Server-Sent Events. Each exchange is persisted in MongoDB under the given &#x60;internalChatId&#x60;. If &#x60;internalChatId&#x60; is supplied, the latest &#x60;response_id&#x60; for that session is fetched from the DB and set as &#x60;previous_response_id&#x60; on the request so LM Studio maintains conversation context. If &#x60;internalChatId&#x60; is omitted a new session is created and its generated ID is returned via a &#x60;created_chat&#x60; SSE event before the stream closes.
      * @endpoint post /openai/completions-stream
      * @param completionsStreamOpenAiRequest 
+     * @param toolsRequireApproval Pause tool/MCP calls for user approval for new chat
+     * @param transcribeAudio Transcribe input_audio parts for new chat
      * @param openAiEndpointPreference openAiEndpointPreference for new chat
      * @param cryptoKey Key for new chat encryption
      * @param chatName Name for new chat
@@ -176,15 +182,33 @@ export class OpenAIService extends BaseService {
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
-    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
-    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
-    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, toolsRequireApproval?: boolean, transcribeAudio?: boolean, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
+    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, toolsRequireApproval?: boolean, transcribeAudio?: boolean, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
+    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, toolsRequireApproval?: boolean, transcribeAudio?: boolean, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
+    public completionsStreamOpenAi(completionsStreamOpenAiRequest: CompletionsStreamOpenAiRequest, toolsRequireApproval?: boolean, transcribeAudio?: boolean, openAiEndpointPreference?: 'RESPONSES' | 'COMPLETION', cryptoKey?: string, chatName?: string, useCrypto?: boolean, internalChatId?: any, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (completionsStreamOpenAiRequest === null || completionsStreamOpenAiRequest === undefined) {
             throw new Error('Required parameter completionsStreamOpenAiRequest was null or undefined when calling completionsStreamOpenAi.');
         }
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'toolsRequireApproval',
+            <any>toolsRequireApproval,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'transcribeAudio',
+            <any>transcribeAudio,
+            QueryParamStyle.Form,
+            true,
+        );
+
 
         localVarQueryParameters = this.addToHttpParams(
             localVarQueryParameters,
@@ -320,6 +344,141 @@ export class OpenAIService extends BaseService {
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Resolve a pending tool-approval request
+     * Approves, denies, or always-allows a tool call the server is currently awaiting (chat has &#x60;toolsRequireApproval&#x60; enabled). No-op if the request id is unknown, e.g. already resolved or the generation ended.
+     * @endpoint post /openai/tool-approval/{requestId}
+     * @param requestId 
+     * @param resolveToolApprovalDto 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public resolveToolApprovalOpenAi(requestId: string, resolveToolApprovalDto: ResolveToolApprovalDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ResolveToolApprovalOpenAi200Response>;
+    public resolveToolApprovalOpenAi(requestId: string, resolveToolApprovalDto: ResolveToolApprovalDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ResolveToolApprovalOpenAi200Response>>;
+    public resolveToolApprovalOpenAi(requestId: string, resolveToolApprovalDto: ResolveToolApprovalDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ResolveToolApprovalOpenAi200Response>>;
+    public resolveToolApprovalOpenAi(requestId: string, resolveToolApprovalDto: ResolveToolApprovalDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (requestId === null || requestId === undefined) {
+            throw new Error('Required parameter requestId was null or undefined when calling resolveToolApprovalOpenAi.');
+        }
+        if (resolveToolApprovalDto === null || resolveToolApprovalDto === undefined) {
+            throw new Error('Required parameter resolveToolApprovalDto was null or undefined when calling resolveToolApprovalOpenAi.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearer) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearer', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/openai/tool-approval/${this.configuration.encodeParam({name: "requestId", value: requestId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<ResolveToolApprovalOpenAi200Response>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: resolveToolApprovalDto,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Resume an in-flight chat generation as SSE
+     * Reconnects to a generation already streaming for &#x60;internalChatId&#x60; — used after a page refresh (or by a shared-chat viewer) while a response is still being generated. Replays every chunk already sent, then forwards live chunks until the generation finishes. If nothing is currently generating for this chat, the response ends immediately with no data.
+     * @endpoint get /openai/completions-stream/resume
+     * @param internalChatId MD5 hex string identifying the chat session to resume
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public resumeCompletionsStreamOpenAi(internalChatId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
+    public resumeCompletionsStreamOpenAi(internalChatId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
+    public resumeCompletionsStreamOpenAi(internalChatId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
+    public resumeCompletionsStreamOpenAi(internalChatId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/event-stream', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (internalChatId === null || internalChatId === undefined) {
+            throw new Error('Required parameter internalChatId was null or undefined when calling resumeCompletionsStreamOpenAi.');
+        }
+
+        let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'internalChatId',
+            <any>internalChatId,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearer) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearer', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/event-stream'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let localVarPath = `/openai/completions-stream/resume`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                params: localVarQueryParameters.toHttpParams(),
+                responseType: "blob",
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
                 observe: observe,

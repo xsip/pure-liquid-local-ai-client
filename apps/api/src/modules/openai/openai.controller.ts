@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   Res,
@@ -37,6 +38,8 @@ import { OpenAiEndpointPreference } from '../chat-metadata/chat-metadata.schema'
 import { ChatCompletionDto } from './dto/completions-dtos/ChatCompletionDto';
 import { InvokeAiModel } from '../invoke/invoke.service';
 import { ChatCompletionChunkDto } from './dto/completions-dtos/ChatCompletionChunkDto';
+import { ResolveToolApprovalDto } from './dto/resolve-tool-approval.dto';
+import { ToolApprovalService } from './tool-approval.service';
 
 @ApiTags('OpenAI')
 @ApiBearerAuth()
@@ -45,6 +48,7 @@ export class OpenaiController {
   constructor(
     private readonly openAiService: OpenAiService,
     private readonly tokenLimitService: TokenLimitService,
+    private readonly toolApprovalService: ToolApprovalService,
   ) {}
 
   @Get('models')
@@ -116,6 +120,12 @@ export class OpenaiController {
     required: false,
     description: 'Transcribe input_audio parts for new chat',
   })
+  @ApiQuery({
+    name: 'toolsRequireApproval',
+    type: 'boolean',
+    required: false,
+    description: 'Pause tool/MCP calls for user approval for new chat',
+  })
   @ApiBody({
     schema: {
       oneOf: [
@@ -156,6 +166,7 @@ export class OpenaiController {
       useInvoke?: boolean;
       invokeModel?: InvokeAiModel;
       transcribeAudio?: boolean;
+      toolsRequireApproval?: boolean;
       mcpOverrides?: string;
     },
   ): Promise<void> {
@@ -201,6 +212,9 @@ export class OpenaiController {
         transcribeAudio:
           (query?.transcribeAudio as unknown) === 'true' ||
           query?.transcribeAudio === true,
+        toolsRequireApproval:
+          (query?.toolsRequireApproval as unknown) === 'true' ||
+          query?.toolsRequireApproval === true,
         mcpOverrides: this.parseMcpOverrides(query?.mcpOverrides),
       } as any,
     );
@@ -236,6 +250,30 @@ export class OpenaiController {
   ): Promise<void> {
     const userId = (user as any)._id as Types.ObjectId;
     return this.openAiService.resumeStream(userId, internalChatId, res);
+  }
+
+  @Post('tool-approval/:requestId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resolve a pending tool-approval request',
+    description:
+      'Approves, denies, or always-allows a tool call the server is currently ' +
+      'awaiting (chat has `toolsRequireApproval` enabled). No-op if the ' +
+      'request id is unknown, e.g. already resolved or the generation ended.',
+    operationId: 'resolveToolApprovalOpenAi',
+  })
+  @ApiOkResponse({
+    schema: { type: 'object', properties: { resolved: { type: 'boolean' } } },
+  })
+  resolveToolApproval(
+    @Param('requestId') requestId: string,
+    @Body() body: ResolveToolApprovalDto,
+  ): { resolved: boolean } {
+    const resolved = this.toolApprovalService.resolve(
+      requestId,
+      body.decision,
+    );
+    return { resolved };
   }
 
   private parseMcpOverrides(raw?: string): any[] | undefined {

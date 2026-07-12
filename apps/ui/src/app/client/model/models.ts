@@ -75,6 +75,8 @@ export * from './modelOpenAiDto';
 export * from './promptTokensDetailsDto';
 export * from './reasoningEffort';
 export * from './registerDto';
+export * from './resolveToolApprovalDto';
+export * from './resolveToolApprovalOpenAi200Response';
 export * from './responseFormatJSONObjectDto';
 export * from './responseFormatJSONSchemaDto';
 export * from './responseFormatTextDto';

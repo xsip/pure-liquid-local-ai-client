@@ -23,6 +23,7 @@ import { InfoComponent } from '../shared/components/info.component';
 import { McpConfigDialogComponent } from '../shared/components/mcp-config-dialog.component';
 import { SpinnerComponent } from '../shared/components/spinner.component';
 import { AppendedFile, OpenAiChatInputComponent } from './openai-api/chat-input.component';
+import { ToolApprovalBannerComponent } from './openai-api/tool-approval-banner.component';
 import { interval, Observable, of, Subscription, switchMap, tap } from 'rxjs';
 import { ButtonComponent, IconButtonComponent, LabelComponent, TextInputComponent, ToggleComponent } from '../shared';
 import { TranslateModule } from '@ngx-translate/core';
@@ -64,6 +65,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
     ToggleComponent,
     McpConfigDialogComponent,
     SpinnerComponent,
+    ToolApprovalBannerComponent,
     TranslateModule,
     NgIconComponent,
     BlobBackgroundDirective,
@@ -432,6 +434,22 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
                       />
                     </div>
 
+                    <!-- Tool approval toggle -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex flex-col items-start">
+                        <ui-label>{{ 'chatSettings.toolsRequireApproval' | translate }}</ui-label>
+                        <span class="text-[10px] text-text-muted mt-0.5 block">{{
+                          'chatSettings.toolsRequireApprovalHint' | translate
+                        }}</span>
+                      </div>
+                      <ui-toggle
+                        [ngModel]="newChatToolsRequireApproval()"
+                        [ngModelOptions]="{ standalone: true }"
+                        activeColor="bg-amber-500"
+                        (checkedChange)="newChatToolsRequireApproval.set($event)"
+                      />
+                    </div>
+
                     <!-- MCP servers -->
                     <div class="flex flex-col gap-1.5">
                       <div class="flex items-center justify-between">
@@ -536,6 +554,13 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
               </app-chat-messages>
             </div>
 
+            @if (activeChat.pendingToolApproval(); as pendingApproval) {
+              <app-tool-approval-banner
+                [request]="pendingApproval"
+                (decision)="activeChat.resolveToolApproval($event)"
+              />
+            }
+
             <app-openai-chat-input
               #chatInput
               [form]="activeChat.form"
@@ -616,6 +641,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
   readonly newChatUseCrypto = signal(false);
   readonly newChatUseInvoke = signal(true);
   readonly newChatTranscribeAudio = signal(false);
+  readonly newChatToolsRequireApproval = signal(false);
   readonly invokeAiModelPreference = signal<InvokeAiModelToUseEnum>('Dreamshaper 8');
   /** User's account-level custom MCP servers, all enabled by default for a new chat. */
   readonly customMcps = signal<CustomMcpDto[]>([]);
@@ -681,6 +707,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         invokeAiModelToUse: this.invokeAiModelPreference(),
         useInvoke: this.newChatUseInvoke(),
         transcribeAudio: this.newChatTranscribeAudio(),
+        toolsRequireApproval: this.newChatToolsRequireApproval(),
         reasoningMode: this.modelService.reasoning()! as string,
         mcpOverrides: this.buildNewChatMcpOverrides(),
       })
@@ -1032,6 +1059,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     this.newChatDisabledMcpIds.set(new Set());
     this.newChatToolOverrides.set(new Map());
     this.newChatTranscribeAudio.set(false);
+    this.newChatToolsRequireApproval.set(false);
   }
 
   // ── Messaging ─────────────────────────────────────────────────────────────
@@ -1065,6 +1093,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         invokeAiModelToUse: this.invokeAiModelPreference(),
         useInvoke: this.newChatUseInvoke(),
         transcribeAudio: this.newChatTranscribeAudio(),
+        toolsRequireApproval: this.newChatToolsRequireApproval(),
         mcpOverrides: this.buildNewChatMcpOverrides(),
       },
     );
@@ -1117,6 +1146,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
           chat.invokeAiModelToUse ?? undefined,
           chat.mcpOverrides ?? [],
           chat.transcribeAudio ?? false,
+          chat.toolsRequireApproval ?? false,
         );
       },
       error: () => {
@@ -1134,6 +1164,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     invokeAiModelToUse,
     mcpOverrides,
     transcribeAudio,
+    toolsRequireApproval,
   }: {
     chatId: string;
     name: string;
@@ -1143,6 +1174,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
     invokeAiModelToUse?: InvokeAiModelToUseEnum;
     mcpOverrides?: ChatMcpOverrideDto[];
     transcribeAudio?: boolean;
+    toolsRequireApproval?: boolean;
   }): void {
     this.chatMetaService
       .updateChatMetadata(chatId, {
@@ -1153,6 +1185,7 @@ export class OpenAiApi implements OnDestroy, OnInit {
         useInvoke,
         mcpOverrides,
         transcribeAudio,
+        toolsRequireApproval,
       })
       .subscribe({
         next: () => {

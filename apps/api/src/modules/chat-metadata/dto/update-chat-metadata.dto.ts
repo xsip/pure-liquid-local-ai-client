@@ -72,6 +72,11 @@ export class UpdateChatMetadataDto {
   @IsBoolean()
   transcribeAudio?: boolean;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  toolsRequireApproval?: boolean;
+
   @ApiPropertyOptional({
     description: 'Opt-out overrides for the user\'s account-level custom MCP servers',
     type: [ChatMcpOverrideDto],

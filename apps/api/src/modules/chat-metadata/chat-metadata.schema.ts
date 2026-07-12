@@ -123,6 +123,11 @@ export class ChatMetadata {
   @Prop({ required: false, type: Boolean, default: false })
   transcribeAudio?: boolean;
 
+  /** When true, tool/MCP calls in this chat pause and wait for user approval
+   * before running instead of executing automatically. */
+  @Prop({ required: false, type: Boolean, default: false })
+  toolsRequireApproval?: boolean;
+
   @Prop({
     required: false,
     enum: Object.values(InvokeAiModel),
@@ -251,6 +256,12 @@ export class ChatMetadataDto {
       'When true, voice messages are transcribed by the model and shown as text instead of an audio bubble',
   })
   transcribeAudio?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, tool/MCP calls in this chat pause and wait for user approval before running',
+  })
+  toolsRequireApproval?: boolean;
 
   @ApiPropertyOptional({
     type: [String],

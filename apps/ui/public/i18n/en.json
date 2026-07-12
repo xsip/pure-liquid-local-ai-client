@@ -51,6 +51,8 @@
     "invokeHint": "Image generator",
     "transcribeAudio": "Transcribe audio",
     "transcribeAudioHint": "Show the transcript instead of the raw voice recording",
+    "toolsRequireApproval": "Require tool approval",
+    "toolsRequireApprovalHint": "Pause before running a tool so you can approve or deny it",
     "model": "AI Model",
     "modelHint": "The model you want to chat with",
     "invoke": "InvokeAI",
@@ -66,6 +68,12 @@
     "mcpServers": "MCP Servers",
     "mcpServersHint": "All enabled by default — opt out below",
     "manageMcps": "Manage MCPs"
+  },
+  "toolApproval": {
+    "title": "Wants to run",
+    "once": "Allow once",
+    "always": "Always allow",
+    "deny": "Deny"
   },
   "chatInput": {
     "placeholder": "Enter your prompt...",

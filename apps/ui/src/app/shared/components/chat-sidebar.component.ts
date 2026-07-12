@@ -648,6 +648,7 @@ export class ChatSidebarComponent {
       useInvoke: chat.useInvoke ?? false,
       invokeAiModelToUse: chat.invokeAiModelToUse,
       transcribeAudio: chat.transcribeAudio ?? false,
+      toolsRequireApproval: chat.toolsRequireApproval ?? false,
       customMcps: this.customMcps(),
       mcpOverrides: chat.mcpOverrides ?? [],
     });
@@ -663,6 +664,7 @@ export class ChatSidebarComponent {
     invokeAiModelToUse?: InvokeAiModelToUseEnum,
     mcpOverrides?: ChatMcpOverrideDto[],
     transcribeAudio?: boolean,
+    toolsRequireApproval?: boolean,
   ): void {
     this.settingsModal.update((m) =>
       m
@@ -675,6 +677,7 @@ export class ChatSidebarComponent {
             useInvoke,
             mcpOverrides: mcpOverrides ?? m.mcpOverrides,
             transcribeAudio: transcribeAudio ?? m.transcribeAudio,
+            toolsRequireApproval: toolsRequireApproval ?? m.toolsRequireApproval,
           }
         : null,
     );

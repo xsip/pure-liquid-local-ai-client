@@ -7,9 +7,17 @@ import {
   McpCallProgressEvent,
   McpReportProgressEvent,
   OpenAiStreamService,
+  ToolApprovalRequiredEvent,
 } from './completions-openai-stream.service';
 import { OpenAiStreamApiInfoEvent, OpenAiStreamErrorEvent } from './openai-stream-events.model';
-import { ChatMetadataDto, ChatMetadataService, CreateChatMetadataDto, ReasoningEffort } from '../../client';
+import {
+  ChatMetadataDto,
+  ChatMetadataService,
+  CreateChatMetadataDto,
+  OpenAIService,
+  ReasoningEffort,
+  ResolveToolApprovalDto,
+} from '../../client';
 import { AppendedFile } from './chat-input.component';
 import InvokeAiModelToUseEnum = ChatMetadataDto.InvokeAiModelToUseEnum;
 
@@ -44,6 +52,7 @@ export class ChatCompletionsService {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly chatMetaService = inject(ChatMetadataService);
+  private readonly openAiApiService = inject(OpenAIService);
   readonly fb = inject(FormBuilder);
 
   // No required validator — a message can be audio/file-only with empty text.
@@ -63,6 +72,10 @@ export class ChatCompletionsService {
    * resumed after a refresh, or a shared chat's owner currently typing. Shown
    * as "AI is generating a response…" rather than the generic lock message. */
   readonly generating = signal(false);
+
+  /** Set while a tool call in this chat is awaiting user approval
+   * (`toolsRequireApproval` on). Cleared once resolved. */
+  readonly pendingToolApproval = signal<ToolApprovalRequiredEvent | null>(null);
 
   private readonly lastUserInput = signal<string>('');
   private sub?: Subscription;
@@ -131,6 +144,7 @@ export class ChatCompletionsService {
       useInvoke?: boolean;
       invokeAiModelToUse?: InvokeAiModelToUseEnum;
       transcribeAudio?: boolean;
+      toolsRequireApproval?: boolean;
       mcpOverrides?: Array<{ mcpId: string; active: boolean; allowedTools: string[] }>;
     },
   ): void {
@@ -194,6 +208,16 @@ export class ChatCompletionsService {
       this.currentChatId() ?? undefined,
       this.currentChatId() ? undefined : newChatOptions,
     );
+  }
+
+  /** Resolves the tool call currently awaiting approval (see `pendingToolApproval`). */
+  resolveToolApproval(decision: ResolveToolApprovalDto['decision']): void {
+    const pending = this.pendingToolApproval();
+    if (!pending) return;
+    this.pendingToolApproval.set(null);
+    this.openAiApiService
+      .resolveToolApprovalOpenAi(pending.requestId, { decision })
+      .subscribe();
   }
 
   /**
@@ -278,6 +302,14 @@ export class ChatCompletionsService {
               };
               return copy;
             });
+            break;
+          }
+
+          case 'response.tool_approval.required': {
+            // `response.mcp_call.in_progress` already pushed this call's bubble —
+            // just surface the approval banner, don't duplicate the bubble.
+            const e = event as ToolApprovalRequiredEvent;
+            this.pendingToolApproval.set(e);
             break;
           }
 

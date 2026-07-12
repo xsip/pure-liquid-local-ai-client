@@ -42,6 +42,10 @@ export interface ChatMetadataDto {
      */
     transcribeAudio?: boolean;
     /**
+     * When true, tool/MCP calls in this chat pause and wait for user approval before running
+     */
+    toolsRequireApproval?: boolean;
+    /**
      * ObjectIds of users granted access to this chat
      */
     sharedWith?: Array<string>;

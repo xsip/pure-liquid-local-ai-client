@@ -95,6 +95,8 @@ model/models.ts
 model/promptTokensDetailsDto.ts
 model/reasoningEffort.ts
 model/registerDto.ts
+model/resolveToolApprovalDto.ts
+model/resolveToolApprovalOpenAi200Response.ts
 model/responseFormatJSONObjectDto.ts
 model/responseFormatJSONSchemaDto.ts
 model/responseFormatTextDto.ts

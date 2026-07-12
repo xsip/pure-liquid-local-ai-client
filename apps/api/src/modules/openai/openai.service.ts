@@ -27,6 +27,7 @@ import { ChatCompletionDto } from './dto/completions-dtos/ChatCompletionDto';
 import { InvokeAiModel } from '../invoke/invoke.service';
 import { OpenAiResponseService } from './open-ai-response.service';
 import { ActiveGenerationService } from './active-generation.service';
+import { ToolApprovalService } from './tool-approval.service';
 import {
   McpClientService,
   McpToolContentPart,
@@ -52,6 +53,7 @@ export class OpenAiService {
     private readonly openaiRequestService: OpenAiResponseService,
     private readonly mcpClientService: McpClientService,
     private readonly activeGenerationService: ActiveGenerationService,
+    private readonly toolApprovalService: ToolApprovalService,
   ) {
     this.baseUrl = this.configService.get<string>(
       'LM_STUDIO_BASE_URL',
@@ -142,7 +144,7 @@ export class OpenAiService {
     }
   }
 
-  async chatStreamCompletions(
+    async chatStreamCompletions(
     userId: Types.ObjectId,
     dto:
       | ChatCompletionCreateParamsStreamingDto
@@ -159,6 +161,7 @@ export class OpenAiService {
       useInvoke?: boolean;
       invokeModel?: InvokeAiModel;
       transcribeAudio?: boolean;
+      toolsRequireApproval?: boolean;
       mcpOverrides?: ChatMetadataDocument['mcpOverrides'];
     },
   ): Promise<void> {
@@ -199,6 +202,7 @@ export class OpenAiService {
           useInvoke: newChatConfig?.useInvoke,
           invokeAiModelToUse: newChatConfig?.invokeModel,
           transcribeAudio: newChatConfig?.transcribeAudio,
+          toolsRequireApproval: newChatConfig?.toolsRequireApproval,
           lastMessageSentAt: new Date(),
           reasoningMode: dto.reasoning_effort ?? 'off',
           tools: [],
@@ -510,6 +514,56 @@ export class OpenAiService {
               { type: 'response.mcp_call.in_progress', name: tc.name, arguments: args },
               resolvedChatMetaId,
             );
+
+            if (
+              chatMeta.toolsRequireApproval &&
+              !this.toolApprovalService.isAlwaysAllowed(
+                resolvedChatMetaId!,
+                tc.name,
+              )
+            ) {
+              const { requestId, promise } = this.toolApprovalService.request();
+              this.writeSseEvent(
+                res,
+                'response.tool_approval.required',
+                {
+                  type: 'response.tool_approval.required',
+                  requestId,
+                  name: tc.name,
+                  arguments: args,
+                },
+                resolvedChatMetaId,
+              );
+
+              const decision = await promise;
+
+              if (decision === 'deny') {
+                messages.push({
+                  role: 'tool',
+                  tool_call_id: tc.id,
+                  content: 'User denied this tool call.',
+                });
+                this.writeSseEvent(
+                  res,
+                  'response.mcp_call.completed',
+                  {
+                    type: 'response.mcp_call.completed',
+                    name: tc.name,
+                    arguments: args,
+                    output: 'Denied by user.',
+                  },
+                  resolvedChatMetaId,
+                );
+                continue;
+              }
+
+              if (decision === 'always') {
+                this.toolApprovalService.markAlwaysAllowed(
+                  resolvedChatMetaId!,
+                  tc.name,
+                );
+              }
+            }
 
             const customTarget = customToolDispatch.get(tc.name);
             const result = await this.mcpClientService.callTool(

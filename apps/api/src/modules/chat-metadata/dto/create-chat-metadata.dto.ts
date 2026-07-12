@@ -85,6 +85,11 @@ export class CreateChatMetadataDto {
   @IsBoolean()
   transcribeAudio?: boolean;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  toolsRequireApproval?: boolean;
+
   @ApiPropertyOptional({ type: Date })
   @IsOptional()
   @IsDate()

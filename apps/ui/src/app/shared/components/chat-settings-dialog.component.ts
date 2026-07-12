@@ -24,6 +24,7 @@ export interface ChatSettingsData {
   useInvoke: boolean;
   invokeAiModelToUse?: InvokeAiModelToUseEnum;
   transcribeAudio?: boolean;
+  toolsRequireApproval?: boolean;
   customMcps: CustomMcpDto[];
   mcpOverrides: ChatMcpOverrideDto[];
 }
@@ -36,6 +37,7 @@ export interface ChatSettingsSaveEvent {
   useInvoke: boolean;
   invokeAiModelToUse?: InvokeAiModelToUseEnum;
   transcribeAudio?: boolean;
+  toolsRequireApproval?: boolean;
   mcpOverrides: ChatMcpOverrideDto[];
 }
 
@@ -171,6 +173,17 @@ interface McpUiState {
           </div>
         }
 
+        <!-- Tool approval toggle -->
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <ui-label>{{ 'chatSettings.toolsRequireApproval' | translate }}</ui-label>
+            <span class="text-[10px] text-text-muted mt-0.5 block">{{
+              'chatSettings.toolsRequireApprovalHint' | translate
+            }}</span>
+          </div>
+          <ui-toggle [(ngModel)]="localToolsRequireApproval" activeColor="bg-amber-500" />
+        </div>
+
         <div class="mb-4 mt-2">
           <div class="flex items-center justify-between mb-1.5">
             <ui-label>{{ 'chatSettings.mcpServers' | translate }}</ui-label>
@@ -302,6 +315,7 @@ export class ChatSettingsDialogComponent implements OnChanges, OnInit {
   localCryptoKey = '';
   localInvokeAiModelPreference?: InvokeAiModelToUseEnum;
   localTranscribeAudio = false;
+  localToolsRequireApproval = false;
   localMcpState: McpUiState[] = [];
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -320,6 +334,7 @@ export class ChatSettingsDialogComponent implements OnChanges, OnInit {
     this.localUseInvoke = d.useInvoke;
     this.localInvokeAiModelPreference = d.invokeAiModelToUse;
     this.localTranscribeAudio = d.transcribeAudio ?? false;
+    this.localToolsRequireApproval = d.toolsRequireApproval ?? false;
 
     this.localMcpState = (d.customMcps ?? []).map((mcp) => {
       const override = (d.mcpOverrides ?? []).find((o) => o.mcpId === mcp.id);
@@ -391,6 +406,7 @@ export class ChatSettingsDialogComponent implements OnChanges, OnInit {
       useInvoke: this.localUseInvoke,
       invokeAiModelToUse: this.localInvokeAiModelPreference,
       transcribeAudio: this.localTranscribeAudio,
+      toolsRequireApproval: this.localToolsRequireApproval,
       mcpOverrides,
     });
   }
