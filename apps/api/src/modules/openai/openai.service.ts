@@ -34,6 +34,7 @@ import {
   McpToolHeaders,
   OpenAiFunctionTool,
 } from '../mcp-client/mcp-client.service';
+import * as fs from 'node:fs';
 
 // ---------------------------------------------------------------------------
 
@@ -144,7 +145,7 @@ export class OpenAiService {
     }
   }
 
-    async chatStreamCompletions(
+  async chatStreamCompletions(
     userId: Types.ObjectId,
     dto:
       | ChatCompletionCreateParamsStreamingDto
@@ -182,10 +183,11 @@ export class OpenAiService {
         (m: any) => m.role === 'user',
       ) as any;
 
-      newChatConfig.chatName = await this.getChatTitleDependingOnContextCompletions(
-        firstUserMessage?.content,
-        dto.model,
-      );
+      newChatConfig.chatName =
+        await this.getChatTitleDependingOnContextCompletions(
+          firstUserMessage?.content,
+          dto.model,
+        );
     }
 
     let resolvedChatMetaId: string | undefined = internalChatId;
@@ -291,7 +293,8 @@ export class OpenAiService {
         const override = chatMeta.mcpOverrides?.find((o) => o.mcpId === mcp.id);
         if (override && !override.active) continue;
 
-        const effectiveAllowedTools = override?.allowedTools ?? mcp.allowedTools;
+        const effectiveAllowedTools =
+          override?.allowedTools ?? mcp.allowedTools;
         const customTools = await this.mcpClientService.listTools(
           mcpHeaders,
           effectiveAllowedTools,
@@ -335,10 +338,12 @@ export class OpenAiService {
     // regenerated on every request rather than reused from persisted history, so
     // they stay accurate even as available tools change or time passes.
     const messages: any[] = [
-      { role: 'system', content: instructions },
+      // { role: 'system', content: instructions },
       {
         role: 'system',
-        content: `Current datetime (authoritative): ${formatted}. You MUST use this for any time-related questions.`,
+        content:
+          instructions +
+          `\nCurrent datetime (authoritative): ${formatted}. You MUST use this for any time-related questions.`,
       },
       ...history.filter((m: any) => m.role !== 'system'),
     ];
@@ -363,7 +368,11 @@ export class OpenAiService {
             // `transcribed: true` survives persistence (Chat Completions message
             // arrays are stored as-is) so a page reload can still tell this text
             // came from a voice recording and label it accordingly in the UI.
-            m.content[i] = { type: 'text', text: transcript, transcribed: true };
+            m.content[i] = {
+              type: 'text',
+              text: transcript,
+              transcribed: true,
+            };
             this.writeSseEvent(
               res,
               'audio_transcript',
@@ -431,10 +440,28 @@ export class OpenAiService {
       resolvedChatMetaId,
     );
 
-    const remainingTokens = await this.tokenLimitService.getRemainingTokens(userId);
+    const remainingTokens =
+      await this.tokenLimitService.getRemainingTokens(userId);
 
     try {
       for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+        /*fs.writeFileSync(
+          `req-iteration-${iteration}.json`,
+          JSON.stringify(
+            {
+              model: dto.model,
+              messages,
+              tools: tools.length ? (tools as any) : undefined,
+              stream: true,
+              max_tokens: remainingTokens <= 0 ? undefined : remainingTokens,
+              stream_options: { include_usage: true },
+              reasoning_effort: reasoningEffort,
+            },
+            null,
+            2,
+          ),
+          'utf-8',
+        );*/
         const stream = (await this.openAi.chat.completions.create({
           model: dto.model,
           messages,
@@ -454,7 +481,11 @@ export class OpenAiService {
         let finishReason: string | null = null;
 
         for await (const chunk of stream) {
-          this.safeWrite(res, `data: ${JSON.stringify(chunk)}\n\n`, resolvedChatMetaId);
+          this.safeWrite(
+            res,
+            `data: ${JSON.stringify(chunk)}\n\n`,
+            resolvedChatMetaId,
+          );
 
           if (chunk.usage) {
             totalTokensUsed += chunk.usage.total_tokens ?? 0;
@@ -473,7 +504,11 @@ export class OpenAiService {
             for (const tc of choice.delta.tool_calls) {
               const idx = tc.index ?? 0;
               if (!toolCallsAcc[idx]) {
-                toolCallsAcc[idx] = { id: tc.id ?? '', name: '', arguments: '' };
+                toolCallsAcc[idx] = {
+                  id: tc.id ?? '',
+                  name: '',
+                  arguments: '',
+                };
               }
               if (tc.id) toolCallsAcc[idx].id = tc.id;
               if (tc.function?.name) toolCallsAcc[idx].name += tc.function.name;
@@ -511,7 +546,11 @@ export class OpenAiService {
             this.writeSseEvent(
               res,
               'response.mcp_call.in_progress',
-              { type: 'response.mcp_call.in_progress', name: tc.name, arguments: args },
+              {
+                type: 'response.mcp_call.in_progress',
+                name: tc.name,
+                arguments: args,
+              },
               resolvedChatMetaId,
             );
 
@@ -597,7 +636,9 @@ export class OpenAiService {
               messages.push({
                 role: 'tool',
                 tool_call_id: tc.id,
-                content: Array.isArray(result) ? JSON.stringify(result) : result,
+                content: Array.isArray(result)
+                  ? JSON.stringify(result)
+                  : result,
               });
             }
 
@@ -608,7 +649,9 @@ export class OpenAiService {
                 type: 'response.mcp_call.completed',
                 name: tc.name,
                 arguments: args,
-                output: image.isImage ? 'Image retrieved successfully.' : result,
+                output: image.isImage
+                  ? 'Image retrieved successfully.'
+                  : result,
               },
               resolvedChatMetaId,
             );
@@ -796,9 +839,11 @@ export class OpenAiService {
    * content, bad mime type, invalid base64, empty payload) so the caller can
    * fall back to normal text-tool handling instead of throwing.
    */
-  private extractImageFromToolResult(
-    result: string | McpToolContentPart[],
-  ): { isImage: boolean; mimeType?: string; base64?: string } {
+  private extractImageFromToolResult(result: string | McpToolContentPart[]): {
+    isImage: boolean;
+    mimeType?: string;
+    base64?: string;
+  } {
     if (!Array.isArray(result)) return { isImage: false };
 
     const imagePart = result.find(
@@ -1057,7 +1102,11 @@ The final response must be a direct answer to the decrypted message, not a repet
     payload: Record<string, unknown>,
     chatId?: string,
   ): void {
-    this.safeWrite(res, `event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`, chatId);
+    this.safeWrite(
+      res,
+      `event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`,
+      chatId,
+    );
   }
 
   /**
@@ -1076,7 +1125,9 @@ The final response must be a direct answer to the decrypted message, not a repet
     try {
       res.write(data);
     } catch (error: any) {
-      this.logger.warn(`SSE write failed (client likely disconnected): ${error.message}`);
+      this.logger.warn(
+        `SSE write failed (client likely disconnected): ${error.message}`,
+      );
     }
   }
 
