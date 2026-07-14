@@ -424,7 +424,6 @@ Per-chat opt-in (`ChatMetadata.toolsRequireApproval`) that pauses a tool/MCP cal
 5. **"Always allow" is persisted per chat** — choosing **Always allow** adds the tool name to `ChatMetadata.alwaysAllowedTools` in MongoDB. Later calls to that same tool in the same chat skip the approval gate (no SSE event, no wait), and the allowlist survives server restarts/redeploys.
 6. **Revoke individually from chat settings** — a chat's settings dialog lists every tool on its `alwaysAllowedTools` list as a chip; clicking one sends a `PATCH /chat-metadata/:id` with that tool removed, re-enabling the approval prompt for it without affecting the rest of the list.
 
-![Revoke always-allow (light)](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/revoke-always-allow-light.png)
 ![Revoke always-allow (dark)](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/revoke-always-allow-dark.png)
 
 > **Note:** because the SSE stream and `resumeStream`/`ActiveGenerationService` buffering (see [Resilient Background Generation](#resilient-background-generation)) already replay everything sent so far, refreshing the page while a tool-approval request is pending replays the `response.tool_approval.required` event and the banner reappears — the backend is still just awaiting the same promise.
