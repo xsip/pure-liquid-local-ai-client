@@ -208,10 +208,10 @@ import { SHOW_CHAT_LINK } from '../tokens';
     `,
   ],
   template: `
-    <div class="min-h-screen bg-surface-base text-text-primary">
+    <div class="min-h-screen relative bg-surface-base text-text-primary">
       <!-- ── HEADER ─────────────────────────────────────────────────────────── -->
       <header
-        class="sticky top-0 z-50 border-b border-border-default bg-surface-base/90 backdrop-blur-md"
+        class="fixed w-full left-0 top-0 z-50 border-b bg-surface-base border-border-default"
       >
         <div class="max-w-6xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between gap-4">
           <div class="flex items-center gap-2.5 min-w-0">

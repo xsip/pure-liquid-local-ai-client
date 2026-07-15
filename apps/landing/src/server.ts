@@ -14,7 +14,7 @@ const browserDistFolder = resolve(serverDistFolder, '../browser');
 const app = express();
 
 const angularApp = new AngularNodeAppEngine({
-  allowedHosts: ['localhost', '127.0.0.1', '127.0.0.0'],
+  allowedHosts: ['localhost', '192.168.0.38', '127.0.0.1', '127.0.0.0'],
 });
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -42,7 +42,7 @@ app.use(
 /**
  * Handle all other requests by rendering the Angular application.
  */
-app.use('/**', (req, res, next) => {
+app.use('/{*splat}', (req, res, next) => {
   angularApp
     .handle(req)
     .then((response) => (response ? writeResponseToNodeResponse(response, res) : next()))
