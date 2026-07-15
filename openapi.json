@@ -814,6 +814,59 @@
         ]
       }
     },
+    "/chats-metadata/{id}/branch": {
+      "post": {
+        "operationId": "branchChatMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ChatMetadata ObjectId of the chat being branched",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BranchChatDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMetadataDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No access to this chat"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clone this chat's settings into a new chat, silently, seeded with the first N messages of its history (\"Branch in new chat\")",
+        "tags": [
+          "Chat Metadata"
+        ]
+      }
+    },
     "/chats-metadata/{id}/share/{userId}": {
       "delete": {
         "operationId": "unshareChatMetadata",
@@ -2218,6 +2271,18 @@
         },
         "required": [
           "username"
+        ]
+      },
+      "BranchChatDto": {
+        "type": "object",
+        "properties": {
+          "keepMessageCount": {
+            "type": "number",
+            "description": "Ordinal (1-based) of the assistant reply to branch after — the new chat keeps history through this Nth assistant message"
+          }
+        },
+        "required": [
+          "keepMessageCount"
         ]
       },
       "CreateAndAddToUserAssetsResponseDto": {

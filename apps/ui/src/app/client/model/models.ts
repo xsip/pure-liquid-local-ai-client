@@ -2,6 +2,7 @@ export * from './addCustomMcpDto';
 export * from './annotationDto';
 export * from './approximateDto';
 export * from './audioDto';
+export * from './branchChatDto';
 export * from './chatCompletionAllowedToolChoiceDto';
 export * from './chatCompletionAllowedToolsDto';
 export * from './chatCompletionAssistantMessageParamDto';

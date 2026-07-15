@@ -21,6 +21,7 @@ model/addCustomMcpDto.ts
 model/annotationDto.ts
 model/approximateDto.ts
 model/audioDto.ts
+model/branchChatDto.ts
 model/chatCompletionAllowedToolChoiceDto.ts
 model/chatCompletionAllowedToolsDto.ts
 model/chatCompletionAssistantMessageParamDto.ts

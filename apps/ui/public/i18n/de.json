@@ -114,7 +114,7 @@
     "toolUse": "Unterstützt Tool-Nutzung"
   },
   "messages": {
-    "reply": "Antworten",
+    "branchInNewChat": "In neuem Chat verzweigen",
     "transcribed": "transkribiert",
     "noMessages": "Noch keine Nachrichten",
     "resend": "↺ Erneut senden",

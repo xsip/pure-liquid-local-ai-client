@@ -19,7 +19,7 @@ import {
   heroXMark,
   heroWrenchScrewdriver,
   heroChevronDown,
-  heroArrowUturnLeft,
+  heroArrowTopRightOnSquare,
 } from '@ng-icons/heroicons/outline';
 import ClientEnum = CreateChatMetadataDto.ClientEnum;
 
@@ -90,7 +90,7 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
       heroXMark,
       heroWrenchScrewdriver,
       heroChevronDown,
-      heroArrowUturnLeft,
+      heroArrowTopRightOnSquare,
     }),
   ],
   template: `
@@ -480,7 +480,7 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
           <div class="relative min-w-0 max-w-[80%] w-full">
             <!-- Avatar badge — small marker in the bubble's top-left corner -->
             <div
-              class="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full overflow-hidden shrink-0 animate-scale-in z-10"
+              class="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full overflow-hidden shrink-0 animate-scale-in"
               style="box-shadow: 0 0 0 2px var(--color-surface-base);"
             >
               <img src="logo-cropped.png" class="w-full h-full object-cover" alt="logo" />
@@ -518,11 +518,11 @@ import ClientEnum = CreateChatMetadataDto.ClientEnum;
             @if (!msg.streaming) {
               <button
                 type="button"
-                (click)="reply.emit($index)"
+                (click)="branch.emit($index)"
                 class="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-text-disabled hover:text-accent border border-transparent hover:border-accent/40 rounded-md transition-all duration-150 active:scale-95"
               >
-                <ng-icon name="heroArrowUturnLeft" class="w-3 h-3" />
-                {{ 'messages.reply' | translate }}
+                <ng-icon name="heroArrowTopRightOnSquare" class="w-3 h-3" />
+                {{ 'messages.branchInNewChat' | translate }}
               </button>
             }
           </div>
@@ -539,7 +539,7 @@ export class ChatMessagesComponent implements OnInit {
   readonly client = input.required<ClientEnum>();
   readonly toggleCollapsed = output<number>();
   readonly resend = output<void>();
-  readonly reply = output<number>();
+  readonly branch = output<number>();
   ngOnInit() {
     setTimeout(() => {
       console.log(this.messages());

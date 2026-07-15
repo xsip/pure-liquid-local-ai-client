@@ -17,6 +17,7 @@ import {
 import { Chat, ChatDocument } from '../chats/chat.schema';
 import { CreateChatMetadataDto } from './dto/create-chat-metadata.dto';
 import { UpdateChatMetadataDto } from './dto/update-chat-metadata.dto';
+import { BranchChatDto } from './dto/branch-chat.dto';
 import {
   AssetRole,
   AssetBlob,
@@ -209,6 +210,198 @@ export class ChatMetadataService {
   ): Promise<string> {
     const doc = await this.create(userId, dto);
     return (doc._id as Types.ObjectId).toHexString();
+  }
+
+  // ── Branch ────────────────────────────────────────────────────────────────
+
+  /**
+   * Clones this chat's settings into a brand-new ChatMetadata document and
+   * seeds its message history up to and including the `keepMessageCount`-th
+   * assistant reply in the source chat's rolling `messages[]` array — mirrors
+   * ChatGPT's "branch in new chat". Sharing/lock state is intentionally not
+   * carried over; everything else (model, tools, crypto, invoke, MCP
+   * overrides, …) is cloned silently with no user-facing options dialog.
+   *
+   * We key off "the Nth assistant reply" rather than a raw array index
+   * because the UI can't reliably know the raw index of a message that just
+   * streamed in during the live session (only messages reloaded from chat
+   * history carry that). Counting assistant replies is derivable from what's
+   * on screen regardless of how the message got there.
+   */
+  async branch(
+    userId: Types.ObjectId,
+    id: string,
+    dto: BranchChatDto,
+  ): Promise<ChatMetadataDocument> {
+    this.assertObjectId(id);
+    const source = await this.metaModel.findById(id).exec();
+    if (!source) throw new NotFoundException(`ChatMetadata ${id} not found`);
+    this.assertAccess(userId, source);
+
+    const latestEntry = await this.chatModel
+      .findOne({ chatInternalId: id, messages: { $ne: null } })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+    const sourceMessages =
+      (latestEntry?.messages as Record<string, unknown>[]) ?? [];
+    const branchedMessages = this.sliceThroughAssistantReply(
+      sourceMessages,
+      dto.keepMessageCount,
+    );
+
+    const branchedMeta = new this.metaModel({
+      name: source.name ? `${source.name} (branch)` : 'Branched chat',
+      usedModel: source.usedModel,
+      client: source.client,
+      userId,
+      reasoningMode: source.reasoningMode,
+      tools: source.tools ?? [],
+      mcpOverrides: source.mcpOverrides ?? [],
+      useCrypto: source.useCrypto,
+      cryptoKey: source.cryptoKey,
+      openAiEndpointPreference: source.openAiEndpointPreference,
+      useInvoke: source.useInvoke,
+      invokeAiModelToUse: source.invokeAiModelToUse,
+      transcribeAudio: source.transcribeAudio,
+      toolsRequireApproval: source.toolsRequireApproval,
+      alwaysAllowedTools: source.alwaysAllowedTools ?? [],
+      lastMessageSentAt: new Date(),
+    });
+    const savedMeta = await branchedMeta.save();
+    const branchedId = (savedMeta._id as Types.ObjectId).toHexString();
+
+    const { generatedAssets, userAssets, rewrittenMessages } =
+      await this.cloneChatAssets(userId, id, branchedId, branchedMessages);
+    savedMeta.generatedAssets = generatedAssets;
+    savedMeta.userAssets = userAssets;
+    await savedMeta.save();
+
+    await new this.chatModel({
+      userId,
+      internalChatId: branchedId,
+      chatInternalId: branchedId,
+      name: null,
+      messages: rewrittenMessages,
+    }).save();
+
+    this.logger.log(
+      `Branched ChatMetadata id=${id} -> ${branchedId} (kept ${branchedMessages.length} messages, cloned ${generatedAssets.length + userAssets.length} assets)`,
+    );
+
+    const [withUsernames] = await this.attachSharedUsernames([savedMeta]);
+    return withUsernames;
+  }
+
+  /**
+   * Duplicates every AssetBlob belonging to the source chat (both AI-generated
+   * and user-uploaded) under the new chat id, rebuilds `generatedAssets` /
+   * `userAssets` to point at the clones, and rewrites any `api/assets/<chatId>/
+   * <filename>` references embedded in message content (the model writes these
+   * inline as markdown image / `::file[]` links — see the chat system prompt)
+   * so the branched chat's files keep working after the source chat, and its
+   * assets, are deleted.
+   */
+  private async cloneChatAssets(
+    userId: Types.ObjectId,
+    sourceId: string,
+    branchedId: string,
+    messages: Record<string, unknown>[],
+  ): Promise<{
+    generatedAssets: GeneratedAsset[];
+    userAssets: GeneratedAsset[];
+    rewrittenMessages: Record<string, unknown>[];
+  }> {
+    const sourceBlobs = await this.assetBlobModel
+      .find({ chatId: sourceId })
+      .exec();
+
+    if (sourceBlobs.length === 0) {
+      return { generatedAssets: [], userAssets: [], rewrittenMessages: messages };
+    }
+
+    const source = await this.metaModel.findById(sourceId).exec();
+
+    // refId(hex) -> { newRefId, oldPath, newPath }
+    const cloneByRefId = new Map<
+      string,
+      { newRefId: Types.ObjectId; oldPath: string; newPath: string }
+    >();
+
+    for (const blob of sourceBlobs) {
+      const ext = blob.filename.split('.').pop()?.toLowerCase() ?? 'bin';
+      const newFilename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const cloned = await this.assetBlobModel.create({
+        userId: userId.toString(),
+        chatId: branchedId,
+        filename: newFilename,
+        displayName: blob.displayName,
+        mimeType: blob.mimeType,
+        data: blob.data,
+        thumbnailData: blob.thumbnailData,
+        role: blob.role,
+        isVisible: blob.isVisible,
+      });
+      cloneByRefId.set((blob._id as Types.ObjectId).toHexString(), {
+        newRefId: cloned._id as Types.ObjectId,
+        oldPath: `api/assets/${sourceId}/${blob.filename}`,
+        newPath: `api/assets/${branchedId}/${newFilename}`,
+      });
+    }
+
+    const remapAssetList = (list: GeneratedAsset[] | undefined): GeneratedAsset[] =>
+      (list ?? []).flatMap((asset) => {
+        const clone = cloneByRefId.get(asset.refId.toString());
+        if (!clone) return [];
+        return [{ ...asset, refId: clone.newRefId, url: clone.newPath }];
+      });
+
+    let messagesJson = JSON.stringify(messages);
+    for (const { oldPath, newPath } of cloneByRefId.values()) {
+      messagesJson = messagesJson.split(oldPath).join(newPath);
+    }
+
+    return {
+      generatedAssets: remapAssetList(source?.generatedAssets),
+      userAssets: remapAssetList(source?.userAssets),
+      rewrittenMessages: JSON.parse(messagesJson),
+    };
+  }
+
+  /**
+   * Returns the prefix of `messages` ending right after the `ordinal`-th
+   * assistant turn that has non-empty text content — i.e. the same notion
+   * of "an AI reply" the chat UI renders as a bubble (mirrors
+   * extractCompletionsMessageText / the `role === 'ai'` push in
+   * loadCompletionsChatHistory on the frontend). If `ordinal` is 0 or no
+   * such turn exists, everything up to the requested ordinal is kept as-is
+   * (clamped to the full array).
+   */
+  private sliceThroughAssistantReply(
+    messages: Record<string, unknown>[],
+    ordinal: number,
+  ): Record<string, unknown>[] {
+    if (ordinal <= 0) return [];
+    let seen = 0;
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i] as any;
+      if (m.role === 'assistant' && this.hasTextContent(m.content)) {
+        seen++;
+        if (seen === ordinal) return messages.slice(0, i + 1);
+      }
+    }
+    // Ordinal exceeds the number of assistant replies we have — keep everything.
+    return messages;
+  }
+
+  private hasTextContent(content: unknown): boolean {
+    if (typeof content === 'string') return content.trim().length > 0;
+    if (Array.isArray(content)) {
+      return content.some((part: any) =>
+        typeof part === 'string' ? part.trim().length > 0 : !!part?.text?.trim(),
+      );
+    }
+    return false;
   }
 
   // ── Sharing ───────────────────────────────────────────────────────────────

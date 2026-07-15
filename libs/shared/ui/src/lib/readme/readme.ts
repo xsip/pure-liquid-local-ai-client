@@ -2100,6 +2100,13 @@ export class ReadmeComponent implements AfterViewInit, OnDestroy {
       iconColor: 'text-success-text',
     },
     {
+      title: 'Branch in New Chat',
+      desc: "Clone any chat's settings — model, MCP tools, crypto, invoke config — into a brand-new chat seeded with history up to the reply you branched from. Generated and uploaded files are duplicated too, so the branch keeps working after the source chat is deleted.",
+      icon: 'M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25',
+      iconBg: 'bg-accent/15',
+      iconColor: 'text-accent',
+    },
+    {
       title: 'Resilient Background Generation',
       desc: 'A response keeps generating server-side even if you disconnect. Refresh mid-response or switch chats and reattach to the live stream instead of losing it.',
       icon: 'M4.5 12a7.5 7.5 0 0113.5-4.5M19.5 12a7.5 7.5 0 01-13.5 4.5M4.5 4.5v4.5h4.5M19.5 19.5V15h-4.5',

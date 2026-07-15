@@ -29,6 +29,7 @@ import {
   CreateChatMetadataDto,
 } from './dto/create-chat-metadata.dto';
 import { UpdateChatMetadataDto } from './dto/update-chat-metadata.dto';
+import { BranchChatDto } from './dto/branch-chat.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { User } from '../auth/user.schema';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -151,6 +152,28 @@ export class ChatMetadataController {
   ) {
     const userId = (user as any)._id as Types.ObjectId;
     return this.chatMetadataService.shareChat(userId, id, body.username);
+  }
+
+  // ── POST /chats-metadata/:id/branch ──────────────────────────────────────
+
+  @Post(':id/branch')
+  @ApiOperation({
+    summary:
+      'Clone this chat\'s settings into a new chat, silently, seeded with the first N messages of its history ("Branch in new chat")',
+    operationId: 'branchChatMetadata',
+  })
+  @ApiParam({ name: 'id', description: 'ChatMetadata ObjectId of the chat being branched' })
+  @ApiBody({ type: BranchChatDto })
+  @ApiCreatedResponse({ type: ChatMetadataDto })
+  @ApiNotFoundResponse({ description: 'Not found' })
+  @ApiForbiddenResponse({ description: 'No access to this chat' })
+  branchChat(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: BranchChatDto,
+  ) {
+    const userId = (user as any)._id as Types.ObjectId;
+    return this.chatMetadataService.branch(userId, id, body);
   }
 
   // ── DELETE /chats-metadata/:id/share/:userId ─────────────────────────────

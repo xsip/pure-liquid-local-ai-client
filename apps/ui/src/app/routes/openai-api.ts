@@ -228,6 +228,7 @@ type ChatNameMode = 'ai' | 'custom' | 'none';
                 [showResend]="activeChat.showResend()"
                 (toggleCollapsed)="activeChat.toggleCollapsed($event)"
                 (resend)="resend()"
+                (branch)="branchChat($event)"
               >
                 @if (!activeChat.hasChatOpen()) {
                   <div
@@ -971,6 +972,30 @@ export class OpenAiApi implements OnDestroy, OnInit {
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
+
+  /** "Branch in new chat" — clones the current chat's settings (silently, no
+   * options dialog) and seeds the new chat with history up to and including
+   * the clicked assistant message, then switches to it. Identifies the
+   * clicked message by "the Nth assistant reply" rather than a raw server
+   * index, since a message that just streamed in during this session was
+   * never reloaded from chat history and has no server-side index attached
+   * to it client-side — but "the Nth ai bubble on screen" is always knowable. */
+  branchChat(messageIndex: number): void {
+    const sourceChatId = this.activeChat.currentChatId();
+    if (!sourceChatId) return;
+    const messages = this.chatCompletionsService.chatMessages();
+    const assistantOrdinal = messages
+      .slice(0, messageIndex + 1)
+      .filter((m) => m.role === 'ai').length;
+    if (assistantOrdinal === 0) return;
+
+    this.chatMetaService
+      .branchChatMetadata(sourceChatId, { keepMessageCount: assistantOrdinal })
+      .subscribe((branched) => {
+        this.loadChatList();
+        this.openChat(branched._id);
+      });
+  }
 
   openChat(chatId: string): void {
     if (this.activeChat.currentChatId() === chatId) return;

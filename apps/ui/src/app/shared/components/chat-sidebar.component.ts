@@ -99,7 +99,7 @@ import InvokeAiModelToUseEnum = UpdateChatMetadataDto.InvokeAiModelToUseEnum;
       mountAuthImages
       mountCodeBlocks
       mountFileCards
-      class="flex flex-col w-70 border-r border-border-default shrink-0 h-full bg-surface-raised"
+      class="flex md:static md:bg-surface-raised bg-primary md:z-auto z-[999999] md:pb-0 pb-12 fixed flex-col w-70 border-r border-border-default shrink-0 md:h-full h-screen"
       style="box-shadow: 2px 0 12px rgba(0,0,0,0.06);"
     >
       <!-- Header -->

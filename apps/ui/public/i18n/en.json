@@ -114,7 +114,7 @@
     "toolUse": "Tool use capable"
   },
   "messages": {
-    "reply": "Reply",
+    "branchInNewChat": "Branch in new chat",
     "transcribed": "transcribed",
     "noMessages": "No messages yet",
     "resend": "↺ Resend",
