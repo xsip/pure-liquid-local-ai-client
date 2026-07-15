@@ -345,7 +345,7 @@ import { SHOW_CHAT_LINK } from '../tokens';
               Architecture
             </a>
             <a
-              href="https://github.com/xsip/liquid-local-ai-client"
+              href="https://github.com/xsip/pure-liquid-local-ai-client"
               target="_blank"
               rel="noopener"
               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-surface-raised hover:bg-surface-overlay border border-border-default text-text-primary font-semibold text-sm transition-colors"

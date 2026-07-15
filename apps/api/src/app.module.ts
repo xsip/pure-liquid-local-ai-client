@@ -35,7 +35,7 @@ import { AdminModule } from './modules/admin/admin.module';
 
     AssetsModule,
     McpModule.forRoot({
-      name: 'liquid-local-ai-client-toolbox',
+      name: 'pure-liquid-local-ai-client-toolbox',
       version: '1.0.0',
       apiPrefix: 'tools',
       transport: [McpTransportType.STREAMABLE_HTTP, McpTransportType.SSE],

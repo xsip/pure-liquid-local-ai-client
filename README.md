@@ -1,11 +1,11 @@
-# <img src="https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/logo-cropped.png" alt="Logo" width="30"/> Pure Liquid Local AI Client | [Preview on youtube](https://www.youtube.com/watch?v=_UhKke10JzY)  
+# <img src="https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/logo-cropped.png" alt="Logo" width="30"/> Pure Liquid Local AI Client | [Preview on youtube](https://www.youtube.com/watch?v=_UhKke10JzY)  
 
 A full-stack AI chat client that connects to any OpenAI-compatible local inference server (LM Studio, Ollama, llama.cpp, vLLM, ...) via the standard `/v1/chat/completions` endpoint. Built with Angular, NestJS, and MongoDB, with first-class MCP (Model Context Protocol) tool support, AI image generation via [InvokeAI](https://invoke-ai.github.io/InvokeAI/), image upload into chat, voice message recording (sent as `input_audio` for models with audio support), and optional end-to-end AES message encryption.
 
 > **⚠️ Breaking change:** LM Studio's native `/api/v1/chat` API and the OpenAI-compatible `/v1/responses/create` (Responses API) endpoint have been **removed** — the modules, routes, and UI code that supported them no longer exist in this repo. See [Chat Completions API (current default)](#chat-completions-api-current-default) below for why and what replaced them.
 
 ---
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/img_3.png)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/img_3.png)
 ---
 
 ## Table of Contents
@@ -341,7 +341,7 @@ Then log in at `POST /auth/login` to receive a JWT.
 
 ## MCP Tool Integration
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-preview-dark.png)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-preview-dark.png)
 
 The NestJS backend plays **both** MCP roles at once:
 
@@ -376,7 +376,7 @@ To add new tools, create an `@Injectable()` class in `apps/api/src/tools/`, deco
 
 ## Custom MCP Servers
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-management-dialog.png)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-management-dialog.png)
 
 
 Beyond the backend's built-in MCP server/client, each user can register their **own external MCP servers** on their account and control exactly which of their tools are available — account-wide or per chat.
@@ -410,7 +410,7 @@ Beyond the backend's built-in MCP server/client, each user can register their **
 
 ## Tool Approval
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/tool-approval-preview-dark.png)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/tool-approval-preview-dark.png)
 
 
 Per-chat opt-in (`ChatMetadata.toolsRequireApproval`) that pauses a tool/MCP call for your approval before it runs, instead of executing automatically the instant the model requests it.
@@ -424,7 +424,7 @@ Per-chat opt-in (`ChatMetadata.toolsRequireApproval`) that pauses a tool/MCP cal
 5. **"Always allow" is persisted per chat** — choosing **Always allow** adds the tool name to `ChatMetadata.alwaysAllowedTools` in MongoDB. Later calls to that same tool in the same chat skip the approval gate (no SSE event, no wait), and the allowlist survives server restarts/redeploys.
 6. **Revoke individually from chat settings** — a chat's settings dialog lists every tool on its `alwaysAllowedTools` list as a chip; clicking one sends a `PATCH /chat-metadata/:id` with that tool removed, re-enabling the approval prompt for it without affecting the rest of the list.
 
-![Revoke always-allow (dark)](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/revoke-always-allow-dark.png)
+![Revoke always-allow (dark)](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/revoke-always-allow-dark.png)
 
 > **Note:** because the SSE stream and `resumeStream`/`ActiveGenerationService` buffering (see [Resilient Background Generation](#resilient-background-generation)) already replay everything sent so far, refreshing the page while a tool-approval request is pending replays the `response.tool_approval.required` event and the banner reappears — the backend is still just awaiting the same promise.
 
@@ -432,7 +432,7 @@ Per-chat opt-in (`ChatMetadata.toolsRequireApproval`) that pauses a tool/MCP cal
 
 ## Custom MCP Progress Reporting
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-progress-dark.gif)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/mcp-progress-dark.gif)
 
 
 The MCP spec has a standard `notifications/progress` mechanism, but neither LM Studio nor llama.cpp forward it anywhere the browser can see — since this project's own backend is the MCP client (see [Chat Completions API](#chat-completions-api-current-default)), there was no transport carrying tool progress from a running MCP tool call back to the chat UI. `ToolsHelperService` (`apps/api/src/tools/tools-helper.service.ts`) is a custom workaround that plugs that gap using the same SSE connection already streaming the chat response.
@@ -456,7 +456,7 @@ The MCP spec has a standard `notifications/progress` mechanism, but neither LM S
 ## Image Generation (InvokeAI)
 
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/chat-image-generator.png)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/chat-image-generator.png)
 
 
 The `generate-image-tool` MCP tool allows the language model to generate images on demand during a conversation. It requires a locally running [InvokeAI](https://invoke-ai.github.io/InvokeAI/) instance.
@@ -511,7 +511,7 @@ Maximum file size: **10 MB** per file.
 
 ## Voice Input
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/chat-voice-preview.png)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/chat-voice-preview.png)
 
 A mode toggle next to the chat input switches the whole composer between typing and recording — no separate speech-to-text step is required by default; the inference server itself (llama.cpp, etc.) handles transcription/understanding via its own audio input support. (For models without audio support, or for stricter tool-calling behavior, see [Voice Transcription](#voice-transcription) below.)
 
@@ -534,7 +534,7 @@ A mode toggle next to the chat input switches the whole composer between typing 
 
 ##  Voice Transcription
 
-![Header](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/audio-transcribe-dark.gif)
+![Header](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/audio-transcribe-dark.gif)
 
 Per-chat opt-in (`ChatMetadata.transcribeAudio`) that turns a recorded voice message into an ordinary typed message *before* the model ever sees audio in the chats context itself — useful to get more reliable tool-calling/reasoning out of a model that technically accepts `input_audio` but doesn't handle it as well as text.
 
@@ -623,8 +623,8 @@ Token limits are managed exclusively through the [Admin CMS](#admin-cms) — the
 
 ## Admin CMS
 
-![Admin CMS — Users (dark)](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/admin-users-preview-dark.png)
-![Admin CMS — Token Limit Configs (dark)](https://raw.githubusercontent.com/xsip/liquid-local-ai-client/refs/heads/main/apps/ui/public/admin-tokens-preview-dark.png)
+![Admin CMS — Users (dark)](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/admin-users-preview-dark.png)
+![Admin CMS — Token Limit Configs (dark)](https://raw.githubusercontent.com/xsip/pure-liquid-local-ai-client/refs/heads/main/apps/ui/public/admin-tokens-preview-dark.png)
 
 A role-gated `/admin` route (Angular reactive forms throughout — no `ngModel`) for managing users and token-limit configs, without touching MongoDB by hand.
 

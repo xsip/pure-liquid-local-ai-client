@@ -57,7 +57,7 @@ export class McpClientService {
     customHeaders?: Record<string, string>,
   ): Promise<Client> {
     const client = new Client({
-      name: 'liquid-local-ai-client-mcp-client',
+      name: 'pure-liquid-local-ai-client-mcp-client',
       version: '1.0.0',
     });
 
