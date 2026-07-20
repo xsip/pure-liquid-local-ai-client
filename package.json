@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "api": "nx serve api",
+    "api:ts-node": "cross-env TS_NODE_COMPILER_OPTIONS={\\\"allowSyntheticDefaultImports\\\":true,\\\"esModuleInterop\\\":true,\\\"module\\\":\\\"commonjs\\\"} node --watch node_modules/ts-node/dist/bin.js -r tsconfig-paths/register apps/api/src/main.ts",
     "ui": "nx serve ui",
     "landing": "cross-env NG_ALLOWED_HOSTS=localhost,127.0.0.1 nx serve landing",
     "build:api": "nx build api",
